@@ -1,0 +1,16 @@
+build
+coverage
+dist
+doc
+lib-loadtest
+node_modules
+*.log
+*.log.json
+.nyc_output
+.env
+.env.build
+.eslintcache
+.serverless
+private
+yarn-error.log
+.DS_Store

@@ -1,0 +1,38 @@
+{
+  "name": "lunch-chooser",
+  "version": "1.0.0",
+  "engines": {
+    "node": "10.15.3",
+    "npm": "5.5.1"
+  },
+  "main": "app.js",
+  "repository": "https://github.com/rrundle/lunch-chooser.git",
+  "author": "rrundle",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "nodemon": "nodemon app.js",
+    "start": "nodemon app.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.18.3",
+    "cors": "^2.8.5",
+    "dotenv": "^7.0.0",
+    "express": "^4.16.3",
+    "express-favicon": "^2.0.1",
+    "moment": "^2.22.2",
+    "mongodb": "^3.2.3",
+    "request": "^2.88.0",
+    "request-promise": "^4.2.5",
+    "tiny-shortener": "^2.2.3"
+  },
+  "devDependencies": {
+    "nodemon": "^1.18.4"
+  },
+  "browserslist": [
+    ">0.2%",
+    "not dead",
+    "not ie <= 11",
+    "not op_mini all"
+  ]
+}
