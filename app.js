@@ -8,6 +8,7 @@ const MongoClient = require('mongodb').MongoClient
 
 const { getRandomInt, getRandomSpot, getSpecificLunchSpots, options, shuffle, triggerSlackPoll } = require('./helpers')
 const launchAddSpot = require('./addSpots')
+const votingBlock = require('./votingBlock')
 
 require('dotenv').config()
 
@@ -37,10 +38,12 @@ const slackOptions = {
 
 /* ROUTES */
 
+/* HANDLE SLASH COMMANDS */
 app.post('/lunch', async (req, res) => {
   console.log('req.body: ', req.body);
   const {
     channel_id: channelId,
+    response_url: webhookUrl,
     team_domain: teamDomain,
     text = '',
     token,
@@ -57,109 +60,67 @@ app.post('/lunch', async (req, res) => {
   }
 
   const lunchData = await triggerSlackPoll('verys', text)
-
-  const data = {
+  console.log('lunchData: ', lunchData);
+  let data = {
     bearerToken: process.env.SLACK_TOKEN_VERYS_BOT,
     callback_id: 'poll_creator',
     channel: channelId,
     token: slackOptions[teamDomain].token,
     trigger_id: triggerId,
     user: userId,
-    text: 'Thanks!',
-    blocks: [
-  		{
-  			type: 'section',
-  			text: {
-  				type: 'plain_text',
-  				text: 'What would you like for lunch today?'
-  			}
-  		},
-      {
-  			type: 'divider'
-  		},
-  		{
-  			type: 'section',
-  			text: {
-  				type: 'mrkdwn',
-  				text: `1. ${lunchData.spot1.name}`
-  			},
-  			accessory: {
-  				type: 'button',
-  				text: {
-  					type: 'plain_text',
-  					text: ':one:',
-  					emoji: true
-  				},
-  				value: 'one'
-  			}
-  		},
-      {
-  			type: 'divider'
-  		},
-  		{
-  			type: 'section',
-  			text: {
-  				type: 'mrkdwn',
-  				text: `2. ${lunchData.spot2.name}`
-  			},
-  			accessory: {
-  				type: 'button',
-  				text: {
-  					type: 'plain_text',
-  					text: ':two:',
-  					emoji: true
-  				},
-  				value: 'two'
-  			}
-  		},
-      {
-  			type: 'divider'
-  		},
-  		{
-  			type: 'section',
-  			text: {
-  				type: 'mrkdwn',
-  				text: `3. ${lunchData.spot3.name}`
-  			},
-  			accessory: {
-  				type: 'button',
-  				text: {
-  					type: 'plain_text',
-  					text: ':three:',
-  					emoji: true
-  				},
-  				value: 'three'
-  			}
-  		}
-  	]
+  }
+  let uri
+  if (!Object.keys(lunchData).length) {
+    data.text = ':exclamation: You don\'t have enough lunch spots saved to create a poll. You can do so by typing "/lunch add"'
+    // uri = webhookUrl
+  } else {
+    // uri = 'https://slack.com/api/chat.postMessage'
+    data.text = 'Thanks!'
+    data.blocks = votingBlock(lunchSpot)
   }
   console.log('data: ', data);
-  const response = await rp(options({ data, uri: 'https://slack.com/api/chat.postMessage' }))
+  const response = await rp(options({ data, uri: webhookUrl }))
   console.log('response: ', response);
 })
 
-app.post('/clear', (req, res) => {
-  const appId = req.body.appId
-  MongoClient.connect(url, { useNewUrlParser: true }, (err, client) => {
-    const db = client.db('lunch')
-    const collection = db.collection(appId)
+/* HANDLE THE INTERACTIVE COMPONENTS */
+app.post('/lunch/interactive', async (req, res) => {
+  console.log('req.body in addSpot: ', req.body);
+  if (req.body.payload) {
+    console.log('its a vote!');
+    const {
+      actions,
+      channel: {
+        id: channelId,
+      } = {},
+      response_url: webhookUrl,
+      team: { domain: teamDomain } = {},
+      trigger_id: triggerId,
+      user: {
+        id: userId,
+        username,
+      } = {},
+    } = JSON.parse(req.body.payload)
+    const [{ block_id: blockId, text: blockText, value: voteValue }] = actions
+    console.log('blockText: ', blockText);
+    console.log('voteValue: ', voteValue);
 
-    collection.deleteMany({})
-    .then(data => {
-      res.set({
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'DELETE,GET,PATCH,POST,PUT',
-        'Access-Control-Allow-Headers': 'Content-Type,Authorization'
-      })
-      res.status(200).json(data)
-    })
-
-    client.close()
-  })
-})
-
-app.post('/lunch/addSpot', (req, res) => {
-  console.log('req.body: ', req.body);
+    // Repalace original with user's vote
+    let data = {
+      bearerToken: process.env.SLACK_TOKEN_VERYS_BOT,
+      callback_id: 'poll_creator',
+      channel: channelId,
+      replace_original: true,
+      token: slackOptions[teamDomain].token,
+      trigger_id: triggerId,
+      user: userId,
+    }
+    // TODO IM HERE!!! lunchSpot is not defined
+    data.blocks = votingBlock({ lunchSpot, user: username, vote: voteValue})
+    console.log('data: ', data);
+    const response = await rp(options({ data, uri: webhookUrl }))
+    console.log('response: ', response);
+  }
   const {
     submission: {
       lunchSpot,
@@ -169,7 +130,7 @@ app.post('/lunch/addSpot', (req, res) => {
   console.log('lunchSpot: ', lunchSpot);
   MongoClient.connect(url, { useNewUrlParser: true }, (err, client) => {
     const db = client.db('lunch')
-    const collection = db.collection('verys')
+    const collection = db.collection('verys') // TODO CHANGE TO DYNAMIC COLLECTION
 
     collection.insertOne({ item: lunchSpot })
     .then(data => {
@@ -183,6 +144,29 @@ app.post('/lunch/addSpot', (req, res) => {
       })
       res.send()
       rp(options({ data: { text: 'The restaurant has been added!' }, uri: responseUrl }))
+    })
+
+    client.close()
+  })
+})
+
+/* CLEAR THE DATABASE */ // TODO PROTECT THIS!!
+app.post('/clear', (req, res) => {
+  console.log('body: ', req.body);
+  const appId = req.body.appId
+  MongoClient.connect(url, { useNewUrlParser: true }, (err, client) => {
+    const db = client.db('lunch')
+    const collection = db.collection(appId)
+    console.log('collection: ', collection);
+
+    collection.deleteMany({})
+    .then(data => {
+      res.set({
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'DELETE,GET,PATCH,POST,PUT',
+        'Access-Control-Allow-Headers': 'Content-Type,Authorization'
+      })
+      res.status(200).json(data)
     })
 
     client.close()

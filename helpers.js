@@ -17,10 +17,14 @@ const getRandomInt = (min, max) => {
 
 const getRandomSpot = (arr, filteredArray) => {
   const extraRandomSpot = arr[getRandomInt(0, arr.length)]
-  const isDuplicate = filteredArray.find(obj => (obj || {}).name === extraRandomSpot.name)
+  console.log('extraRandomSpot: ', extraRandomSpot);
+  const isDuplicate = filteredArray.find(obj => (obj || {}).item === extraRandomSpot.item)
+  console.log('isDuplicate: ', isDuplicate);
   if (isDuplicate) {
+    console.log('recursively running again');
     getRandomSpot(arr, filteredArray)
   } else {
+    console.log('returning extra random spot');
     return extraRandomSpot
   }
 }
@@ -33,6 +37,9 @@ const getSpecificLunchSpots = ({ appId, text: type }) => {
 
       collection.find().toArray()
       .then(data => {
+        console.log('lunch list from db: ', data);
+        if (data.length < 3) return resolve([])
+
         let filteredList
         if (!type) {
           filteredList = [
@@ -47,10 +54,19 @@ const getSpecificLunchSpots = ({ appId, text: type }) => {
           // make sure the list is no longer than 3 spots
           filteredList = shuffledList.slice(0, 3)
         }
+        console.log('filteredList: ', filteredList);
         // Have the filteredList now remove duplicates
-        const newFilteredList = Array.from(new Set(filteredList.map(a => a.name)))
-          .map(name => filteredList.find(a => a.name === name))
-
+        console.log('filtered list being arrayed: ', Array.from(new Set(filteredList.map(a => a.item))));
+        const newFilteredList = Array.from(new Set(filteredList.map(a => a.item)))
+          .map(name => {
+            console.log('name: ', name );
+            return filteredList.find(a => {
+              console.log('a: ', a);
+              return a.item === name
+            })
+          })
+        debugger
+        console.log('newFilteredList: ', newFilteredList);
         // if the array is shorter than 3 add more to it
         while (newFilteredList.length < 3) {
           newFilteredList.push(getRandomSpot(data, newFilteredList))
@@ -91,20 +107,23 @@ const shuffle = (array) => {
 const triggerSlackPoll = async (appId, text) => {
   const lunchList = await getSpecificLunchSpots({ appId, text })
   console.log('lunchList: ', lunchList);
+  console.log('lunchList length: ', lunchList.length);
   // const url1 = await tiny(lunchList[0].url)
   // const url2 = await tiny(lunchList[1].url)
   // const url3 = await tiny(lunchList[2].url)
+  if (!lunchList.length) return {}
+  console.log('should be returning a list');
   return {
     spot1: {
-      name: lunchList[0].name,
+      name: lunchList[0].item,
       // url: url1,
     },
     spot2: {
-      name: lunchList[1].name,
+      name: lunchList[1].item,
       // url: url2,
     },
     spot3: {
-      name: lunchList[2].name,
+      name: lunchList[2].item,
       // url: url3,
     }
   }
