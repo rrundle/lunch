@@ -5,9 +5,9 @@ require('dotenv').config()
 
 const dialog = {
   dialog: {
-    callback_id: 'add_spot',
-    title: 'Add a new lunch spot',
-    submit_label: 'Add',
+    callback_id: 'search_spot',
+    title: 'Search for a lunch spot',
+    submit_label: 'Find',
     elements: [
       {
         type: 'text',
@@ -15,11 +15,17 @@ const dialog = {
         name: 'lunchSpot',
         placeholder: 'e.g. In-N-Out',
       },
+      {
+        type: 'text',
+        label: 'Location',
+        name: 'location',
+        placeholder: 'Los Angeles, CA',
+      },
     ],
   },
 }
 
-const launchAddSpot = async (triggerId) => {
+const launchSearchSpots = async (triggerId) => {
   const data = {
   bearerToken: process.env.SLACK_TOKEN_VERYS,
   ...dialog,
@@ -36,4 +42,4 @@ try {
 }
 }
 
-module.exports = launchAddSpot
+module.exports = launchSearchSpots

@@ -1927,7 +1927,7 @@ timed-out@^4.0.0:
 
 tiny-shortener@^2.2.3:
   version "2.2.3"
-  resolved "https://npm-registry.web.amok.systems/t/tiny-shortener/_attachments/tiny-shortener-2.2.3.tgz#fba22a812e0ab95e9edd6e027b0a1d6d8bf7e561"
+  resolved "https://registry.npmjs.org/tiny-shortener/-/tiny-shortener-2.2.3.tgz#fba22a812e0ab95e9edd6e027b0a1d6d8bf7e561"
   integrity sha512-QEuFbPx+yrn33py7FoVktNRp0ode7n8Fxs6EvFK5oQI2lY575yb42NfwdeuiPO1LWgLCJIBqamH/I3uWKVzIAg==
 
 to-object-path@^0.3.0:
