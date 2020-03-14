@@ -78,7 +78,7 @@ app.post('/lunch', async (req, res) => {
   } else {
     // uri = 'https://slack.com/api/chat.postMessage'
     data.text = 'Thanks!'
-    data.blocks = votingBlock(lunchSpot)
+    data.blocks = votingBlock({ lunchData, user: null, vote: null })
   }
   console.log('data: ', data);
   const response = await rp(options({ data, uri: webhookUrl }))
@@ -91,8 +91,11 @@ app.post('/lunch/interactive', async (req, res) => {
   res.sendStatus(200)
   if (req.body.payload) {
     const request = JSON.parse(req.body.payload)
-    console.log();
-    const { callback_id, type } = request
+    console.log('request: ', request);
+    const {
+      callback_id,
+      type
+    } = request
 
     if (type === 'dialog_submission') {
       console.log('search or add');
@@ -100,13 +103,13 @@ app.post('/lunch/interactive', async (req, res) => {
       switch(callback_id) {
         case 'search_spot':
           console.log('search yelp!');
-          let {
-            submission: {
-              lunchSpot,
-              location,
-            } = {},
-          } = request
           try {
+            const {
+              submission: {
+                lunchSpot,
+                location,
+              } = {},
+            } = request
             const yelpResults = await searchYelp(lunchSpot, location)
             const {
               results: {
@@ -115,99 +118,94 @@ app.post('/lunch/interactive', async (req, res) => {
             } = yelpResults
             const interactiveMessage = await buildInteractiveMessage(businesses, request)
             console.log('interactiveMessage: ', interactiveMessage);
-
           } catch(err) {
             console.log('uh oh problem with yelp search: ', err);
           }
           break
-        case 'add_spot':
-          console.log('its an add spot submission');
-          break
-        case 'poll_creator':
-          console.log('create a poll');
-          break
         default:
           console.log('default, do nothing?');
           break
-          // const {
-          //   actions,
-          //   channel: {
-          //     id: channelId,
-          //   } = {},
-          //   response_url: webhookUrl,
-          //   team: { domain: teamDomain } = {},
-          //   trigger_id: triggerId,
-          //   type,
-          //   user: {
-          //     id: userId,
-          //     username,
-          //   } = {},
-          // } = request
       }
     }
-    //
-    // const [{ block_id: blockId, text: blockText, value: voteValue }] = actions
-    // console.log('blockText: ', blockText);
-    // console.log('voteValue: ', voteValue);
-    //
-    // // Repalace original with user's vote
-    // let data = {
-    //   bearerToken: process.env.SLACK_TOKEN_VERYS_BOT,
-    //   callback_id: 'poll_creator',
-    //   channel: channelId,
-    //   replace_original: true,
-    //   token: slackOptions[teamDomain].token,
-    //   trigger_id: triggerId,
-    //   user: userId,
-    // }
-    // TODO IM HERE!!! lunchSpot is not defined
-    // data.blocks = votingBlock({ lunchSpot, user: username, vote: voteValue})
-    // console.log('data: ', data);
-    // const response = await rp(options({ data, uri: webhookUrl }))
-    // console.log('response: ', response);
-  } else {
-    // user adding a spot
-    console.log('searching yelp!: ', req.body);
-    // const yelpResults = await seachYelp()
+    if (type === 'block_actions') {
+      const [submission] = request.actions
+      console.log('submission: ', submission)
+      // check if its a spot addition request
+      if (submission.text.text === 'Choose') {
+        const selectedSpot = JSON.parse(submission.value)
+        console.log('selectedSpot: ', selectedSpot);
+        MongoClient.connect(url, (err, client) => {
+          const db = client.db('lunch')
+          const collection = db.collection('test')
+          // insert in the database, but not if another spot with the same name
+          // already exists
+          collection.updateOne(selectedSpot, { $set: selectedSpot }, { upsert: true })
+            .then(async data => {
+              // send back message saying successful, failure, or already added
+              const options = {
+                method: 'POST',
+                uri: 'https://slack.com/api/chat.postEphemeral',
+                body: JSON.stringify({
+                  channel: request.channel.id,
+                  token: request.token,
+                  user: request.user.id,
+                  type: 'section',
+                  text: data.upsertedCount ?
+                    `:tada: ${selectedSpot.name} has been added to the list!` :
+                    ':dancer: Great minds think alike! This spot has already been added. Try another place.',
+                }),
+                headers: {
+                  Authorization: `Bearer ${process.env.SLACK_TOKEN_VERYS}`,
+                  'Content-Type': 'application/json',
+                },
+              }
+              try {
+                const response = await rp(options)
+                console.log('response: ', response);
+              } catch (err) {
+                console.log('err: ', err);
+              }
 
+            })
+            .catch(err => {
+              console.log('err from db: ', err);
+            })
 
-    // const {
-    //   submission: {
-    //     lunchSpot,
-    //   } = {},
-    //   response_url: responseUrl,
-    // } = JSON.parse(req.body.payload)
-    // console.log('lunchSpot: ', lunchSpot);
-    // MongoClient.connect(url, { useNewUrlParser: true }, (err, client) => {
-    //   const db = client.db('lunch')
-    //   const collection = db.collection('test') // TODO CHANGE TO DYNAMIC COLLECTION
-    //
-    //   collection.insertOne({ item: lunchSpot })
-    //   .then(data => {
-    //     const insertedSpot = data.ops[0]
-    //     console.log('data from db: ', insertedSpot);
-    //     console.log('responseUrl: ', responseUrl);
-    //     res.set({
-    //       'Access-Control-Allow-Origin': '*',
-    //       'Access-Control-Allow-Methods': 'DELETE,GET,PATCH,POST,PUT',
-    //       'Access-Control-Allow-Headers': 'Content-Type,Authorization'
-    //     })
-    //     res.send()
-    //     rp(options({ data: { text: 'The restaurant has been added!' }, uri: responseUrl }))
-    //   })
-    //
-    //   client.close()
-    // })
+          client.close()
+        })
+      } else {
+        console.log('its a vote!!');
+        const [{ block_id: blockId, text: blockText, value: voteValue }] = actions
+        console.log('blockText: ', blockText);
+        console.log('voteValue: ', voteValue);
+
+        // Repalace original with user's vote
+        let data = {
+          bearerToken: process.env.SLACK_TOKEN_VERYS_BOT,
+          callback_id: 'poll_creator',
+          channel: channelId,
+          replace_original: true,
+          token: slackOptions[teamDomain].token,
+          trigger_id: triggerId,
+          user: userId,
+        }
+        // TODO IM HERE!!! lunchSpot is not defined
+        data.blocks = votingBlock({ lunchData, user: username, vote: voteValue })
+        console.log('data: ', data);
+        const response = await rp(options({ data, uri: webhookUrl }))
+        console.log('response: ', response);
+      }
+    }
   }
 })
 
 /* CLEAR THE DATABASE */ // TODO PROTECT THIS!!
-app.post('/clear', (req, res) => {
+app.get('/clear', (req, res) => {
   console.log('body: ', req.body);
   const appId = req.body.appId
   MongoClient.connect(url, { useNewUrlParser: true }, (err, client) => {
     const db = client.db('lunch')
-    const collection = db.collection(appId)
+    const collection = db.collection('test')
 
     collection.deleteMany({})
     .then(data => {

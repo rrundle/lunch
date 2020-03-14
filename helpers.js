@@ -1,4 +1,4 @@
-// const { tiny } = require('tiny-shortener')
+const { tiny } = require('tiny-shortener')
 const MongoClient = require('mongodb').MongoClient
 
 require('dotenv').config()
@@ -54,19 +54,9 @@ const getSpecificLunchSpots = ({ appId, text: type }) => {
           // make sure the list is no longer than 3 spots
           filteredList = shuffledList.slice(0, 3)
         }
-        console.log('filteredList: ', filteredList);
         // Have the filteredList now remove duplicates
-        console.log('filtered list being arrayed: ', Array.from(new Set(filteredList.map(a => a.item))));
-        const newFilteredList = Array.from(new Set(filteredList.map(a => a.item)))
-          .map(name => {
-            console.log('name: ', name );
-            return filteredList.find(a => {
-              console.log('a: ', a);
-              return a.item === name
-            })
-          })
-        debugger
-        console.log('newFilteredList: ', newFilteredList);
+        const newFilteredList = Array.from(new Set(filteredList.map(a => a.name)))
+          .map(name => filteredList.find(a => a.name === name))
         // if the array is shorter than 3 add more to it
         while (newFilteredList.length < 3) {
           newFilteredList.push(getRandomSpot(data, newFilteredList))
@@ -108,23 +98,26 @@ const triggerSlackPoll = async (appId, text) => {
   const lunchList = await getSpecificLunchSpots({ appId, text })
   console.log('lunchList: ', lunchList);
   console.log('lunchList length: ', lunchList.length);
-  // const url1 = await tiny(lunchList[0].url)
-  // const url2 = await tiny(lunchList[1].url)
-  // const url3 = await tiny(lunchList[2].url)
+  const url1 = await tiny(lunchList[0].url)
+  const url2 = await tiny(lunchList[1].url)
+  const url3 = await tiny(lunchList[2].url)
   if (!lunchList.length) return []
   console.log('should be returning a list');
   return {
     spot1: {
-      name: lunchList[0].item,
-      // url: url1,
+      name: lunchList[0].name,
+      url: url1,
+      value: JSON.stringify(lunchList[0]),
     },
     spot2: {
-      name: lunchList[1].item,
-      // url: url2,
+      name: lunchList[1].name,
+      url: url2,
+      value: JSON.stringify(lunchList[1]),
     },
     spot3: {
-      name: lunchList[2].item,
-      // url: url3,
+      name: lunchList[2].name,
+      url: url3,
+      value: JSON.stringify(lunchList[2]),
     }
   }
 }

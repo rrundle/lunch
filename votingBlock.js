@@ -1,8 +1,8 @@
-const votingBlock = ({ lunchData, user, vote }) => {
+const votingBlock = ({ lunchData, user: username, vote: voteValue }) => {
   // some logic
   console.log('lunchData in helper: ', lunchData);
-  console.log('user in helper: ', user);
-  console.log('vote in helper: ', vote);
+  console.log('username: ', username);
+  console.log('voteValue: ', voteValue);
   return [
     {
       type: 'section',
