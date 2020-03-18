@@ -17,14 +17,10 @@ const getRandomInt = (min, max) => {
 
 const getRandomSpot = (arr, filteredArray) => {
   const extraRandomSpot = arr[getRandomInt(0, arr.length)]
-  console.log('extraRandomSpot: ', extraRandomSpot);
   const isDuplicate = filteredArray.find(obj => (obj || {}).name === extraRandomSpot.name)
-  console.log('isDuplicate: ', isDuplicate);
   if (isDuplicate) {
-    console.log('recursively running again');
     getRandomSpot(arr, filteredArray)
   } else {
-    console.log('returning extra random spot');
     return extraRandomSpot
   }
 }
@@ -37,7 +33,6 @@ const getSpecificLunchSpots = ({ appId, text: type }) => {
 
       collection.find().toArray()
       .then(data => {
-        console.log('lunch list from db: ', data);
         if (data.length < 3) return resolve([])
 
         let filteredList
@@ -96,13 +91,10 @@ const shuffle = (array) => {
 
 const triggerSlackPoll = async (appId, text) => {
   const lunchList = await getSpecificLunchSpots({ appId, text })
-  console.log('lunchList: ', lunchList);
-  console.log('lunchList length: ', lunchList.length);
   const url1 = await tiny(lunchList[0].url)
   const url2 = await tiny(lunchList[1].url)
   const url3 = await tiny(lunchList[2].url)
   if (!lunchList.length) return []
-  console.log('should be returning a list');
   return {
     spot1: {
       name: lunchList[0].name,

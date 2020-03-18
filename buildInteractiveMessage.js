@@ -2,7 +2,6 @@ const rp = require('request-promise')
 const { tiny } = require('tiny-shortener')
 
 const createMessage = async (sectionData) => {
-  console.log('sectionData: ', sectionData);
   const messageArray = [
     {
       type: 'section',
@@ -54,7 +53,6 @@ const createMessage = async (sectionData) => {
 
 const interactiveMessageData = async (lunchData, request) => {
   const data = await createMessage(lunchData)
-  console.log('data: ', data);
   return {
     channel: request.channel.id,
     blocks: data,

@@ -42,7 +42,6 @@ const slackOptions = {
 
 /* HANDLE SLASH COMMANDS */
 app.post('/lunch', async (req, res) => {
-  console.log('req.body from lunch: ', req.body);
   const {
     channel_id: channelId,
     response_url: webhookUrl,
@@ -78,56 +77,50 @@ app.post('/lunch', async (req, res) => {
     data.text = 'Thanks!'
     data.blocks = votingBlock({ lunchData, userId: null, vote: null })
   }
-  console.log('data for poll creation: ', data);
-  const response = await rp(options({ data, uri: webhookUrl }))
-  console.log('response rom creating poll #### ----- ####: ', response);
+  try {
+    rp(options({ data, uri: webhookUrl }))
+  } catch(err) {
+    console.log('error from creating poll: ', err);
+  }
 })
 
 /* HANDLE THE INTERACTIVE COMPONENTS */
 app.post('/lunch/interactive', async (req, res) => {
-  console.log('req.body in /interactive: ', req.body);
   res.sendStatus(200)
   if (req.body.payload) {
     const request = JSON.parse(req.body.payload)
-    console.log('request: ', request);
     const {
       callback_id,
       type
     } = request
 
     if (type === 'dialog_submission') {
-      switch(callback_id) {
-        case 'search_spot':
-          try {
-            const {
-              submission: {
-                lunchSpot,
-                location,
-              } = {},
-            } = request
-            const yelpResults = await searchYelp(lunchSpot, location)
-            const {
-              results: {
-                businesses
-              }
-            } = yelpResults
-            const interactiveMessage = await buildInteractiveMessage(businesses, request)
-          } catch(err) {
-            console.log('uh oh problem with yelp search: ', err);
-          }
-          break
-        default:
-          console.log('default, do nothing?');
-          break
+      if (callback_id === search_spot) {
+        try {
+          const {
+            submission: {
+              lunchSpot,
+              location,
+            } = {},
+          } = request
+          const yelpResults = await searchYelp(lunchSpot, location)
+          const {
+            results: {
+              businesses
+            }
+          } = yelpResults
+          const interactiveMessage = await buildInteractiveMessage(businesses, request)
+        } catch(err) {
+          console.log('uh oh problem with yelp search: ', err);
+        }
       }
     }
     if (type === 'block_actions') {
       const [submission] = request.actions
-      console.log('submission: ', submission)
       // check if its a spot addition request
       if (submission.text.text === 'Choose') {
+        // spot addition request
         const selectedSpot = JSON.parse(submission.value)
-        console.log('selectedSpot: ', selectedSpot);
         MongoClient.connect(url, (err, client) => {
           const db = client.db('lunch')
           const collection = db.collection('test')
@@ -155,7 +148,6 @@ app.post('/lunch/interactive', async (req, res) => {
               }
               try {
                 const response = await rp(options)
-                console.log('response: ', response);
               } catch (err) {
                 console.log('err: ', err);
               }
@@ -168,9 +160,8 @@ app.post('/lunch/interactive', async (req, res) => {
           client.close()
         })
       } else {
-        console.log('its a vote!!: ', request);
+        // its a vote
         const { value: voteValue } = submission
-        console.log('voteValue: ', voteValue);
         const vote = JSON.parse(voteValue)
         const userId = request.user.id
 
@@ -186,10 +177,8 @@ app.post('/lunch/interactive', async (req, res) => {
           }
 
           data.blocks = votingBlock({ lunchData: request, userId, vote })
-          console.log('data for new voting block: ', data);
 
           const response = await rp(options({ data, uri: request.response_url }))
-          console.log('response from updated voting block: ', response);
         } catch(err) {
           console.log('err: ', err);
         }
@@ -198,92 +187,31 @@ app.post('/lunch/interactive', async (req, res) => {
   }
 })
 
-/* CLEAR THE DATABASE */ // TODO PROTECT THIS!!
+/* CLEAR THE DATABASE */
+// WARNING proceed with caution
 app.get('/clear', (req, res) => {
-  console.log('body: ', req.body);
-  const appId = req.body.appId
-  MongoClient.connect(url, { useNewUrlParser: true }, (err, client) => {
-    const db = client.db('lunch')
-    const collection = db.collection('test')
-
-    collection.deleteMany({})
-    .then(data => {
-      console.log('data from delete: ', data);
-      res.set({
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'DELETE,GET,PATCH,POST,PUT',
-        'Access-Control-Allow-Headers': 'Content-Type,Authorization'
-      })
-      res.status(200).json(data)
-    })
-
-    client.close()
-  })
-})
-
-app.post('/lunch/results', (req, res) => {
-  console.log('got the request: ', req.body)
-  const appId = req.body.appId
-  MongoClient.connect(url, { useNewUrlParser: true }, (err, client) => {
-    if (err) {
-      console.log('error connecting to the db: ', err)
-    } else {
+  const { appId, password } = req.body
+  if (password !== process.env.MONGO_PASSWORD) {
+    res.sendStatus(404)
+  } else {
+    MongoClient.connect(url, { useNewUrlParser: true }, (err, client) => {
       const db = client.db('lunch')
-      const collection = db.collection(appId)
+      const collection = db.collection('test')
 
-      collection.find().toArray()
+      collection.deleteMany({})
       .then(data => {
+        console.log('data from delete: ', data);
         res.set({
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'DELETE,GET,PATCH,POST,PUT',
           'Access-Control-Allow-Headers': 'Content-Type,Authorization'
         })
-        const sortedData = data.sort((a, b) => {
-          const textA = a.name.toLowerCase()
-          const textB = b.name.toLowerCase()
-          return (textA < textB) ? -1 : (textA > textB) ? 1 : 0
-        })
-        console.log('data sorted: ', sortedData);
-        const response = {
-          slackEnabled: slackOptions[appId].channel ? true : false,
-          list: sortedData
-        }
-        res.status(200).json(response)
+        res.status(200).json(data)
       })
 
       client.close()
-    }
-  })
-})
-
-app.post('/search/yelp', (req, res) => {
-
-  const url =
-    req.body.latitude ?
-    `https://api.yelp.com/v3/businesses/search?term=${req.body.term}&latitude=${req.body.latitude}&longitude=${req.body.longitude}` :
-    `https://api.yelp.com/v3/businesses/search?term=${req.body.term}&location=${req.body.location}`
-
-  const options = {
-    method: 'GET',
-    url,
-    headers: {
-      Authorization: `Bearer ${YELP_TOKEN}`,
-      content: 'application/json',
-    },
+    })
   }
-
-  request(options, function (error, response, body) {
-    if (error) {
-      res.status(403).json({ message: 'error getting yelp results'})
-    } else {
-      res.set({
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'DELETE,GET,PATCH,POST,PUT',
-        'Access-Control-Allow-Headers': 'Content-Type,Authorization'
-      })
-      res.status(200).json(body)
-    }
-  })
 })
 
 // eslint-disable-next-line no-console

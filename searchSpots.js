@@ -19,7 +19,7 @@ const dialog = {
         type: 'text',
         label: 'Location',
         name: 'location',
-        placeholder: 'Los Angeles, CA',
+        placeholder: 'e.g. Los Angeles, CA',
       },
     ],
   },
@@ -32,10 +32,8 @@ const launchSearchSpots = async (triggerId) => {
   token: process.env.SLACK_TOKEN_VERYS,
   trigger_id: triggerId,
 }
-console.log('data: ', data);
 try {
   const response = await rp(options({ data, uri: 'https://slack.com/api/dialog.open' }))
-  console.log('response: ', response);
   return response
 } catch (err) {
   return err
