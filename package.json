@@ -24,7 +24,8 @@
     "mongodb": "^3.2.3",
     "request": "^2.88.0",
     "request-promise": "^4.2.5",
-    "tiny-shortener": "^2.2.3"
+    "tiny-shortener": "^2.2.3",
+    "uuid": "^7.0.2"
   },
   "devDependencies": {
     "nodemon": "^1.18.4"

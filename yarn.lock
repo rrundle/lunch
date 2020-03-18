@@ -2105,6 +2105,11 @@ uuid@^3.3.2:
   resolved "https://npm-registry.web.amok.systems/u/uuid/_attachments/uuid-3.3.3.tgz#4568f0216e78760ee1dbf3a4d2cf53e224112866"
   integrity sha512-pW0No1RGHgzlpHJO1nsVrHKpOEIxkGg1xB+v0ZmdNH5OAeAwzAVrCnI2/6Mtx+Uys6iaylxa+D3g4j63IKKjSQ==
 
+uuid@^7.0.2:
+  version "7.0.2"
+  resolved "https://registry.npmjs.org/uuid/-/uuid-7.0.2.tgz#7ff5c203467e91f5e0d85cfcbaaf7d2ebbca9be6"
+  integrity sha512-vy9V/+pKG+5ZTYKf+VcphF5Oc6EFiu3W8Nv3P3zIh0EqVI80ZxOzuPfe9EHjkFNvf8+xuTHVeei4Drydlx4zjw==
+
 vary@^1, vary@~1.1.2:
   version "1.1.2"
   resolved "https://npm-registry.web.amok.systems/v/vary/_attachments/vary-1.1.2.tgz#2299f02c6ded30d4a5961b0b9f74524a18f634fc"

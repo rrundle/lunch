@@ -42,7 +42,7 @@ const slackOptions = {
 
 /* HANDLE SLASH COMMANDS */
 app.post('/lunch', async (req, res) => {
-  console.log('req.body in /lunch: ', req.body);
+  console.log('req.body from lunch: ', req.body);
   const {
     channel_id: channelId,
     response_url: webhookUrl,
@@ -54,7 +54,7 @@ app.post('/lunch', async (req, res) => {
   } = req.body
   res.status(200).json({
     response_type: 'in_channel',
-    text: 'Thanks for sending the request!'
+    text: 'Thanks! Hang tight...'
   })
 
   if (text === 'add') {
@@ -62,11 +62,11 @@ app.post('/lunch', async (req, res) => {
   }
 
   const lunchData = await triggerSlackPoll('test', text)
-  console.log('lunchData: ', lunchData);
   let data = {
     bearerToken: process.env.SLACK_TOKEN_VERYS_BOT,
     callback_id: 'poll_creator',
     channel: channelId,
+    response_type: 'in_channel',
     token: slackOptions[teamDomain].token,
     trigger_id: triggerId,
     user: userId,
@@ -74,20 +74,18 @@ app.post('/lunch', async (req, res) => {
   let uri
   if (!Object.keys(lunchData).length) {
     data.text = ':exclamation: You don\'t have enough lunch spots saved to create a poll. You can do so by typing "/lunch add"'
-    // uri = webhookUrl
   } else {
-    // uri = 'https://slack.com/api/chat.postMessage'
     data.text = 'Thanks!'
-    data.blocks = votingBlock({ lunchData, user: null, vote: null })
+    data.blocks = votingBlock({ lunchData, userId: null, vote: null })
   }
-  console.log('data: ', data);
+  console.log('data for poll creation: ', data);
   const response = await rp(options({ data, uri: webhookUrl }))
-  console.log('response: ', response);
+  console.log('response rom creating poll #### ----- ####: ', response);
 })
 
 /* HANDLE THE INTERACTIVE COMPONENTS */
 app.post('/lunch/interactive', async (req, res) => {
-  console.log('req.body in addSpot: ', req.body);
+  console.log('req.body in /interactive: ', req.body);
   res.sendStatus(200)
   if (req.body.payload) {
     const request = JSON.parse(req.body.payload)
@@ -98,11 +96,8 @@ app.post('/lunch/interactive', async (req, res) => {
     } = request
 
     if (type === 'dialog_submission') {
-      console.log('search or add');
-      console.log('callback_id: ', callback_id);
       switch(callback_id) {
         case 'search_spot':
-          console.log('search yelp!');
           try {
             const {
               submission: {
@@ -117,7 +112,6 @@ app.post('/lunch/interactive', async (req, res) => {
               }
             } = yelpResults
             const interactiveMessage = await buildInteractiveMessage(businesses, request)
-            console.log('interactiveMessage: ', interactiveMessage);
           } catch(err) {
             console.log('uh oh problem with yelp search: ', err);
           }
@@ -174,26 +168,31 @@ app.post('/lunch/interactive', async (req, res) => {
           client.close()
         })
       } else {
-        console.log('its a vote!!');
-        const [{ block_id: blockId, text: blockText, value: voteValue }] = actions
-        console.log('blockText: ', blockText);
+        console.log('its a vote!!: ', request);
+        const { value: voteValue } = submission
         console.log('voteValue: ', voteValue);
+        const vote = JSON.parse(voteValue)
+        const userId = request.user.id
 
-        // Repalace original with user's vote
-        let data = {
-          bearerToken: process.env.SLACK_TOKEN_VERYS_BOT,
-          callback_id: 'poll_creator',
-          channel: channelId,
-          replace_original: true,
-          token: slackOptions[teamDomain].token,
-          trigger_id: triggerId,
-          user: userId,
+        try {
+          // Repalace original with user's vote
+          let data = {
+            bearerToken: process.env.SLACK_TOKEN_VERYS_BOT,
+            callback_id: 'poll_creator',
+            channel: request.channel.id,
+            replace_original: true,
+            token: slackOptions.verys.token,
+            trigger_id: request.trigger_id,
+          }
+
+          data.blocks = votingBlock({ lunchData: request, userId, vote })
+          console.log('data for new voting block: ', data);
+
+          const response = await rp(options({ data, uri: request.response_url }))
+          console.log('response from updated voting block: ', response);
+        } catch(err) {
+          console.log('err: ', err);
         }
-        // TODO IM HERE!!! lunchSpot is not defined
-        data.blocks = votingBlock({ lunchData, user: username, vote: voteValue })
-        console.log('data: ', data);
-        const response = await rp(options({ data, uri: webhookUrl }))
-        console.log('response: ', response);
       }
     }
   }
