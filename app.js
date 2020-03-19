@@ -57,12 +57,13 @@ app.post('/lunch', async (req, res) => {
   })
 
   if (text === 'add') {
-    return launchSearchSpots(triggerId)
+    console.log('text = add');
+    return launchSearchSpots(triggerId, token)
   }
 
   const lunchData = await triggerSlackPoll('test', text)
   let data = {
-    bearerToken: process.env.SLACK_TOKEN_VERYS_BOT,
+    bearerToken: process.env.SLACK_TOKEN_VERYS,
     callback_id: 'poll_creator',
     channel: channelId,
     response_type: 'in_channel',
@@ -86,7 +87,6 @@ app.post('/lunch', async (req, res) => {
 
 /* HANDLE THE INTERACTIVE COMPONENTS */
 app.post('/lunch/interactive', async (req, res) => {
-  res.sendStatus(200)
   if (req.body.payload) {
     const request = JSON.parse(req.body.payload)
     const {
@@ -95,7 +95,12 @@ app.post('/lunch/interactive', async (req, res) => {
     } = request
 
     if (type === 'dialog_submission') {
-      if (callback_id === search_spot) {
+      if (callback_id === 'search_spot') {
+        console.log('returning a success, close the dialog');
+        res.status(204).json({
+          body: '',
+          isBase64Encoded: true,
+        })
         try {
           const {
             submission: {
@@ -116,12 +121,13 @@ app.post('/lunch/interactive', async (req, res) => {
       }
     }
     if (type === 'block_actions') {
+      res.sendStatus(200)
       const [submission] = request.actions
       // check if its a spot addition request
       if (submission.text.text === 'Choose') {
         // spot addition request
         const selectedSpot = JSON.parse(submission.value)
-        MongoClient.connect(url, (err, client) => {
+        MongoClient.connect(url, { useNewUrlParser: true }, (err, client) => {
           const db = client.db('lunch')
           const collection = db.collection('test')
           // insert in the database, but not if another spot with the same name
@@ -168,7 +174,7 @@ app.post('/lunch/interactive', async (req, res) => {
         try {
           // Repalace original with user's vote
           let data = {
-            bearerToken: process.env.SLACK_TOKEN_VERYS_BOT,
+            bearerToken: process.env.SLACK_TOKEN_VERYS,
             callback_id: 'poll_creator',
             channel: request.channel.id,
             replace_original: true,

@@ -10,17 +10,21 @@ require('dotenv').config()
 const url = `mongodb+srv://slotdp02:${process.env.MONGO_PASSWORD}@cluster0-8cwp7.mongodb.net/test?retryWrites=true`
 
 const getRandomInt = (min, max) => {
-    min = Math.ceil(min)
-    max = Math.floor(max)
-    return Math.floor(Math.random() * (max - min)) + min
+  min = Math.ceil(min)
+  max = Math.floor(max)
+  return Math.floor(Math.random() * (max - min)) + min
 }
 
 const getRandomSpot = (arr, filteredArray) => {
   const extraRandomSpot = arr[getRandomInt(0, arr.length)]
+  console.log('extraRandomSpot: ', extraRandomSpot);
   const isDuplicate = filteredArray.find(obj => (obj || {}).name === extraRandomSpot.name)
   if (isDuplicate) {
     getRandomSpot(arr, filteredArray)
+  } else if (!extraRandomSpot) {
+    getRandomSpot(arr, filteredArray)
   } else {
+    console.log('returning extraRandomSpot: ', extraRandomSpot);
     return extraRandomSpot
   }
 }
@@ -42,6 +46,7 @@ const getSpecificLunchSpots = ({ appId, text: type }) => {
             data[getRandomInt(0, data.length)],
             data[getRandomInt(0, data.length)],
           ]
+          console.log('filteredList: ', filteredList);
         } else {
           const list = data.filter(lunchSpot => lunchSpot.categories.some(category => category.alias.includes(type.toLowerCase())))
           // shuffle the array
@@ -52,10 +57,15 @@ const getSpecificLunchSpots = ({ appId, text: type }) => {
         // Have the filteredList now remove duplicates
         const newFilteredList = Array.from(new Set(filteredList.map(a => a.name)))
           .map(name => filteredList.find(a => a.name === name))
+        console.log('newFilteredList: ', newFilteredList);
         // if the array is shorter than 3 add more to it
         while (newFilteredList.length < 3) {
-          newFilteredList.push(getRandomSpot(data, newFilteredList))
+          const getNewSpot = getRandomSpot(data, newFilteredList)
+          // TODO this often comes back undefined, WHY?????
+          console.log('getNewSpot: ', getNewSpot);
+          newFilteredList.push(getNewSpot)
         }
+        console.log('newFilteredList now: ', newFilteredList);
         resolve(newFilteredList)
       })
       client.close()
@@ -91,6 +101,7 @@ const shuffle = (array) => {
 
 const triggerSlackPoll = async (appId, text) => {
   const lunchList = await getSpecificLunchSpots({ appId, text })
+  console.log('lunchList: ', lunchList);
   const url1 = await tiny(lunchList[0].url)
   const url2 = await tiny(lunchList[1].url)
   const url3 = await tiny(lunchList[2].url)

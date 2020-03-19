@@ -25,15 +25,17 @@ const dialog = {
   },
 }
 
-const launchSearchSpots = async (triggerId) => {
+const launchSearchSpots = async (triggerId, token) => {
   const data = {
   bearerToken: process.env.SLACK_TOKEN_VERYS,
   ...dialog,
-  token: process.env.SLACK_TOKEN_VERYS,
+  token: token,
   trigger_id: triggerId,
 }
+console.log('dialog open data: ', data);
 try {
   const response = await rp(options({ data, uri: 'https://slack.com/api/dialog.open' }))
+  console.log('response from dialog open: ', response);
   return response
 } catch (err) {
   return err
