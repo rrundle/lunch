@@ -16,15 +16,11 @@ const getRandomInt = (min, max) => {
 }
 
 const getRandomSpot = (arr, filteredArray) => {
-  const extraRandomSpot = arr[getRandomInt(0, arr.length)]
-  console.log('extraRandomSpot: ', extraRandomSpot);
+  let extraRandomSpot = arr[getRandomInt(0, arr.length)]
   const isDuplicate = filteredArray.find(obj => (obj || {}).name === extraRandomSpot.name)
   if (isDuplicate) {
-    getRandomSpot(arr, filteredArray)
-  } else if (!extraRandomSpot) {
-    getRandomSpot(arr, filteredArray)
+    return getRandomSpot(arr, filteredArray)
   } else {
-    console.log('returning extraRandomSpot: ', extraRandomSpot);
     return extraRandomSpot
   }
 }
@@ -46,9 +42,14 @@ const getSpecificLunchSpots = ({ appId, text: type }) => {
             data[getRandomInt(0, data.length)],
             data[getRandomInt(0, data.length)],
           ]
-          console.log('filteredList: ', filteredList);
         } else {
-          const list = data.filter(lunchSpot => lunchSpot.categories.some(category => category.alias.includes(type.toLowerCase())))
+          const list = data.filter(
+            lunchSpot => lunchSpot.categories.some(
+              category =>
+                category.alias.toLowerCase().includes(type.toLowerCase()) ||
+                category.title.toLowerCase().includes(type.toLowerCase())
+            )
+          )
           // shuffle the array
           const shuffledList = shuffle(list)
           // make sure the list is no longer than 3 spots
@@ -57,15 +58,11 @@ const getSpecificLunchSpots = ({ appId, text: type }) => {
         // Have the filteredList now remove duplicates
         const newFilteredList = Array.from(new Set(filteredList.map(a => a.name)))
           .map(name => filteredList.find(a => a.name === name))
-        console.log('newFilteredList: ', newFilteredList);
         // if the array is shorter than 3 add more to it
         while (newFilteredList.length < 3) {
           const getNewSpot = getRandomSpot(data, newFilteredList)
-          // TODO this often comes back undefined, WHY?????
-          console.log('getNewSpot: ', getNewSpot);
           newFilteredList.push(getNewSpot)
         }
-        console.log('newFilteredList now: ', newFilteredList);
         resolve(newFilteredList)
       })
       client.close()

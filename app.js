@@ -6,11 +6,24 @@ const { tiny } = require('tiny-shortener')
 const rp = require('request-promise')
 const MongoClient = require('mongodb').MongoClient
 
-const { getRandomInt, getRandomSpot, getSpecificLunchSpots, options, shuffle, triggerSlackPoll } = require('./helpers')
+const {
+  getRandomInt,
+  getRandomSpot,
+  getSpecificLunchSpots,
+  options,
+  shuffle,
+  triggerSlackPoll
+} = require('./helpers')
+const {
+  slackOptions,
+  mongoUrl,
+  YELP_TOKEN
+} = require('./config')
 const launchSearchSpots = require('./searchSpots')
 const searchYelp = require('./searchYelp')
 const votingBlock = require('./votingBlock')
 const buildInteractiveMessage = require('./buildInteractiveMessage')
+const buildHelpBlock = require('./buildHelpBlock')
 
 require('dotenv').config()
 
@@ -22,21 +35,6 @@ const PORT = process.env.PORT || 2999
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(jsonParser)
 app.use(cors())
-
-// Connection URL - local
-// const url = 'mongodb://localhost:27017'
-
-// Connecttion URL - production
-const url = `mongodb+srv://slotdp02:${process.env.MONGO_PASSWORD}@cluster0-8cwp7.mongodb.net/test?retryWrites=true`
-
-const YELP_TOKEN = process.env.YELP_TOKEN
-
-const slackOptions = {
-  verys: {
-    channel: 'C9GE4DFTL',
-    token: process.env.SLACK_TOKEN_VERYS,
-  }
-}
 
 /* ROUTES */
 
@@ -61,6 +59,11 @@ app.post('/lunch', async (req, res) => {
     return launchSearchSpots(triggerId, token)
   }
 
+  if (text === 'help') {
+    console.log('text = help');
+    return buildHelpBlock(req.body)
+  }
+
   const lunchData = await triggerSlackPoll('test', text)
   let data = {
     bearerToken: process.env.SLACK_TOKEN_VERYS,
@@ -71,13 +74,14 @@ app.post('/lunch', async (req, res) => {
     trigger_id: triggerId,
     user: userId,
   }
-  let uri
+
   if (!Object.keys(lunchData).length) {
     data.text = ':exclamation: You don\'t have enough lunch spots saved to create a poll. You can do so by typing "/lunch add"'
   } else {
     data.text = 'Thanks!'
-    data.blocks = votingBlock({ lunchData, userId: null, vote: null })
+    data.blocks = await votingBlock({ lunchData, userId: null, vote: null })
   }
+  console.log('data: for poll: ', data);
   try {
     rp(options({ data, uri: webhookUrl }))
   } catch(err) {
@@ -123,11 +127,12 @@ app.post('/lunch/interactive', async (req, res) => {
     if (type === 'block_actions') {
       res.sendStatus(200)
       const [submission] = request.actions
+      console.log('submission: ', submission);
       // check if its a spot addition request
       if (submission.text.text === 'Choose') {
         // spot addition request
         const selectedSpot = JSON.parse(submission.value)
-        MongoClient.connect(url, { useNewUrlParser: true }, (err, client) => {
+        MongoClient.connect(mongoUrl, { useNewUrlParser: true }, (err, client) => {
           const db = client.db('lunch')
           const collection = db.collection('test')
           // insert in the database, but not if another spot with the same name
@@ -166,10 +171,10 @@ app.post('/lunch/interactive', async (req, res) => {
           client.close()
         })
       } else {
-        // its a vote
+        // its a vote or new poll request
         const { value: voteValue } = submission
-        const vote = JSON.parse(voteValue)
-        const userId = request.user.id
+        const vote = voteValue === 'newPoll' ? 'newPoll' : JSON.parse(voteValue)
+        const userId = voteValue === 'newPoll' ? req.body : request.user.id
 
         try {
           // Repalace original with user's vote
@@ -182,9 +187,10 @@ app.post('/lunch/interactive', async (req, res) => {
             trigger_id: request.trigger_id,
           }
 
-          data.blocks = votingBlock({ lunchData: request, userId, vote })
+          data.blocks = await votingBlock({ lunchData: request, userId, vote })
 
           const response = await rp(options({ data, uri: request.response_url }))
+          console.log('response from votingBlock: ', response);
         } catch(err) {
           console.log('err: ', err);
         }
@@ -200,7 +206,7 @@ app.get('/clear', (req, res) => {
   if (password !== process.env.MONGO_PASSWORD) {
     res.sendStatus(404)
   } else {
-    MongoClient.connect(url, { useNewUrlParser: true }, (err, client) => {
+    MongoClient.connect(mongoUrl, { useNewUrlParser: true }, (err, client) => {
       const db = client.db('lunch')
       const collection = db.collection('test')
 

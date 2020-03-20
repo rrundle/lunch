@@ -1,7 +1,11 @@
 const { v4: uuidv4 } = require('uuid')
+const { triggerSlackPoll } = require('./helpers')
 
-const votingBlock = ({ lunchData, userId, vote: voteValue }) => {
-  if (voteValue) {
+const votingBlock = async ({ lunchData, userId, vote: voteValue }) => {
+  const refreshedData = voteValue === 'newPoll' ? await triggerSlackPoll('test', '') : lunchData
+  console.log('refreshedData: ', refreshedData);
+  if (voteValue && voteValue !== 'newPoll') {
+    console.log('voteValue NOT A NEW POLL!: ', voteValue);
     // its a vote not the initial block creation
     const existingBlocks = lunchData.message.blocks
     const [action] = lunchData.actions
@@ -10,6 +14,14 @@ const votingBlock = ({ lunchData, userId, vote: voteValue }) => {
     })
     if (matchingBlockIndex !== -1) {
       // we found the match for the vote
+      //
+      // Check if this is the first vote, if so, remove the ability to refresh
+      // the poll (make a new one in place)
+      const firstVote = existingBlocks.find(block => {
+        return (((block || {}).elements || [])[0] || {}).value === 'newPoll'
+      })
+      console.log('firstVote: ', firstVote);
+      if (firstVote) existingBlocks.pop()
       /*
        * Theres a lot of mutation here but thats on purpose, we need to change the block in place
        * Slack requires you replace the entire block, you cant edit individual sections
@@ -81,7 +93,7 @@ const votingBlock = ({ lunchData, userId, vote: voteValue }) => {
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `1. ${lunchData.spot1.name}`
+        text: `1. ${refreshedData.spot1.name}`
       },
       block_id: uuidv4(),
       accessory: {
@@ -91,7 +103,7 @@ const votingBlock = ({ lunchData, userId, vote: voteValue }) => {
           text: ':one:',
           emoji: true
         },
-        value: lunchData.spot1.value
+        value: refreshedData.spot1.value
       }
     },
     {
@@ -101,7 +113,7 @@ const votingBlock = ({ lunchData, userId, vote: voteValue }) => {
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `2. ${lunchData.spot2.name}`
+        text: `2. ${refreshedData.spot2.name}`
       },
       block_id: uuidv4(),
       accessory: {
@@ -111,7 +123,7 @@ const votingBlock = ({ lunchData, userId, vote: voteValue }) => {
           text: ':two:',
           emoji: true
         },
-        value: lunchData.spot2.value
+        value: refreshedData.spot2.value
       }
     },
     {
@@ -121,7 +133,7 @@ const votingBlock = ({ lunchData, userId, vote: voteValue }) => {
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `3. ${lunchData.spot3.name}`
+        text: `3. ${refreshedData.spot3.name}`
       },
       block_id: uuidv4(),
       accessory: {
@@ -131,8 +143,22 @@ const votingBlock = ({ lunchData, userId, vote: voteValue }) => {
           text: ':three:',
           emoji: true
         },
-        value: lunchData.spot3.value
+        value: refreshedData.spot3.value
       }
+    },
+    {
+      type: 'actions',
+      elements: [
+        {
+          type: 'button',
+          text: {
+            type: 'plain_text',
+            text: 'New Set of Lunch Spots',
+          },
+          action_id: 'fresh_poll',
+          value: 'newPoll',
+        }
+      ]
     }
   ]
 }

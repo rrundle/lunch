@@ -62,7 +62,7 @@ const interactiveMessageData = async (lunchData, request) => {
 
 const buildInteractiveMessage = (body, request) => {
   return new Promise(async (resolve, reject) => {
-    // const [firstResult] = body
+
     const message = await interactiveMessageData(body, request)
 
     const options = {
