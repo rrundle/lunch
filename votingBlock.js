@@ -93,7 +93,7 @@ const votingBlock = async ({ lunchData, userId, vote: voteValue }) => {
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `1. ${refreshedData.spot1.name}`
+        text: `1. ${refreshedData.spot1.name} - ${refreshedData.spot1.url}`
       },
       block_id: uuidv4(),
       accessory: {
@@ -113,7 +113,7 @@ const votingBlock = async ({ lunchData, userId, vote: voteValue }) => {
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `2. ${refreshedData.spot2.name}`
+        text: `2. ${refreshedData.spot2.name} - ${refreshedData.spot2.url}`
       },
       block_id: uuidv4(),
       accessory: {
@@ -133,7 +133,7 @@ const votingBlock = async ({ lunchData, userId, vote: voteValue }) => {
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `3. ${refreshedData.spot3.name}`
+        text: `3. ${refreshedData.spot3.name} - ${refreshedData.spot3.url}`
       },
       block_id: uuidv4(),
       accessory: {
