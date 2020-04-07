@@ -1,4 +1,5 @@
 const rp = require('request-promise')
+const { mongoClient } = require('./helpers')
 
 const buildHelpBlock = (body) => {
   return new Promise(async (resolve, reject) => {
@@ -48,20 +49,26 @@ const buildHelpBlock = (body) => {
       ]
     }
 
+    const collection = await mongoClient(body.team_id)
+    const user = await collection.findOne()
+    console.log('user: ', user);
+    console.log('user.incoming_webhook.channel_id: ', user.incoming_webhook.channel_id);
+
     const options = {
       method: 'POST',
-      uri: 'https://slack.com/api/chat.postEphemeral',
+      uri: user.incoming_webhook.url, // 'https://slack.com/api/chat.postEphemeral',
       body: JSON.stringify({
-        channel: body.channel_id,
+        channel: user.incoming_webhook.channel_id,
         token: body.token,
         user: body.user_id,
         ...message,
       }),
       headers: {
-        Authorization: `Bearer ${process.env.SLACK_TOKEN_VERYS}`,
+        Authorization: `Bearer ${process.env.SLACK_TOKEN}`,
         'Content-Type': 'application/json',
       },
     }
+    console.log('options: ', options);
     try {
       const response = await rp(options)
       console.log('response: ', response);

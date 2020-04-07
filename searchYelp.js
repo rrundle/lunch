@@ -13,6 +13,8 @@ const searchYelp = (term, location) => {
       },
     }
 
+    console.log('options in yelp: ', options);
+
     return request(options, function (error, response, body) {
       if (error) {
         reject({

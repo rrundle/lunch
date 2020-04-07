@@ -1,13 +1,7 @@
 const { tiny } = require('tiny-shortener')
 const MongoClient = require('mongodb').MongoClient
 
-require('dotenv').config()
-
-// Connection URL - local
-// const url = 'mongodb://localhost:27017'
-
-// Connecttion URL - production
-const url = `mongodb+srv://slotdp02:${process.env.MONGO_PASSWORD}@cluster0-8cwp7.mongodb.net/test?retryWrites=true`
+const { mongoUrl } = require('./config')
 
 const getRandomInt = (min, max) => {
   min = Math.ceil(min)
@@ -26,59 +20,62 @@ const getRandomSpot = (arr, filteredArray) => {
 }
 
 const getSpecificLunchSpots = ({ appId, text: type }) => {
-  return new Promise((resolve) => {
-    MongoClient.connect(url, { useNewUrlParser: true }, (err, client) => {
-      const db = client.db('lunch')
-      const collection = db.collection(appId)
+  return new Promise(async (resolve) => {
+    const collection = await mongoClient(appId)
+    const data = await collection.find().toArray()
+    console.log('data from db: ', data);
+    // filter out the identifier entry
+    const onlySpots = data.filter(entry => entry.alias)
+    console.log('onlySpots: ', onlySpots);
+    // if less than 3 we dont have enough to make a poll, return an empty array
+    if (onlySpots.length < 3) return resolve([])
 
-      collection.find().toArray()
-      .then(data => {
-        if (data.length < 3) return resolve([])
-
-        let filteredList
-        if (!type) {
-          filteredList = [
-            data[getRandomInt(0, data.length)],
-            data[getRandomInt(0, data.length)],
-            data[getRandomInt(0, data.length)],
-          ]
-        } else {
-          const list = data.filter(
-            lunchSpot => lunchSpot.categories.some(
-              category =>
-                category.alias.toLowerCase().includes(type.toLowerCase()) ||
-                category.title.toLowerCase().includes(type.toLowerCase())
-            )
-          )
-          // shuffle the array
-          const shuffledList = shuffle(list)
-          // make sure the list is no longer than 3 spots
-          filteredList = shuffledList.slice(0, 3)
-        }
-        // Have the filteredList now remove duplicates
-        const newFilteredList = Array.from(new Set(filteredList.map(a => a.name)))
-          .map(name => filteredList.find(a => a.name === name))
-        // if the array is shorter than 3 add more to it
-        while (newFilteredList.length < 3) {
-          const getNewSpot = getRandomSpot(data, newFilteredList)
-          newFilteredList.push(getNewSpot)
-        }
-        resolve(newFilteredList)
-      })
-      client.close()
-    })
+    let filteredList
+    if (!type) {
+      filteredList = [
+        onlySpots[getRandomInt(0, onlySpots.length)],
+        onlySpots[getRandomInt(0, onlySpots.length)],
+        onlySpots[getRandomInt(0, onlySpots.length)],
+      ]
+    } else {
+      const list = onlySpots.filter(
+        lunchSpot => lunchSpot.categories.some(
+          category =>
+            category.alias.toLowerCase().includes(type.toLowerCase()) ||
+            category.title.toLowerCase().includes(type.toLowerCase())
+        )
+      )
+      // shuffle the array
+      const shuffledList = shuffle(list)
+      // make sure the list is no longer than 3 spots
+      filteredList = shuffledList.slice(0, 3)
+    }
+    // Have the filteredList now remove duplicates
+    const newFilteredList = Array.from(new Set(filteredList.map(a => a.name)))
+      .map(name => filteredList.find(a => a.name === name))
+    // if the array is shorter than 3 add more to it
+    while (newFilteredList.length < 3) {
+      const getNewSpot = getRandomSpot(onlySpots, newFilteredList)
+      newFilteredList.push(getNewSpot)
+    }
+    resolve(newFilteredList)
   })
 }
 
-const options = ({ data = {}, uri = '' }) => ({
-  method: 'POST',
-  uri,
-  body: data,
-  json: true,
-  headers: {
-    Authorization: `Bearer ${data.bearerToken}`,
-  },
-})
+const options = ({ data = {}, uri = '' }) => {
+  const { bearerToken, ...requestData } = data
+  console.log('requestData: ', requestData);
+  console.log('bearerToken: ', bearerToken);
+  return {
+    method: 'POST',
+    uri,
+    body: requestData,
+    json: true,
+    headers: {
+      Authorization: `Bearer ${bearerToken}`,
+    },
+  }
+}
 
 const shuffle = (array) => {
   let counter = array.length
@@ -99,10 +96,10 @@ const shuffle = (array) => {
 const triggerSlackPoll = async (appId, text) => {
   const lunchList = await getSpecificLunchSpots({ appId, text })
   console.log('lunchList: ', lunchList);
+  if (!lunchList.length) return []
   const url1 = await tiny(lunchList[0].url)
   const url2 = await tiny(lunchList[1].url)
   const url3 = await tiny(lunchList[2].url)
-  if (!lunchList.length) return []
   return {
     spot1: {
       name: lunchList[0].name,
@@ -122,4 +119,16 @@ const triggerSlackPoll = async (appId, text) => {
   }
 }
 
-module.exports = { getRandomInt, getRandomSpot, getSpecificLunchSpots, options, shuffle, triggerSlackPoll }
+const mongoClient = (teamId) => {
+  return new Promise((resolve, reject) => {
+    console.log('mongoUrl: ', mongoUrl);
+    MongoClient.connect(mongoUrl, { useNewUrlParser: true }, (err, client) => {
+      if (err) reject(err)
+      const db = client.db('lunch')
+      const collection = db.collection(teamId)
+      resolve(collection)
+    })
+  })
+}
+
+module.exports = { getRandomInt, getRandomSpot, getSpecificLunchSpots, mongoClient, options, shuffle, triggerSlackPoll }

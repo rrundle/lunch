@@ -67,7 +67,7 @@ const buildInteractiveMessage = (body, request) => {
 
     const options = {
       method: 'POST',
-      uri: 'https://slack.com/api/chat.postEphemeral',
+      uri: request.response_url,
       body: JSON.stringify({
         channel: request.channel.id,
         token: request.token,
@@ -75,10 +75,11 @@ const buildInteractiveMessage = (body, request) => {
         ...message,
       }),
       headers: {
-        Authorization: `Bearer ${process.env.SLACK_TOKEN_VERYS}`,
+        Authorization: `Bearer ${process.env.SLACK_TOKEN}`,
         'Content-Type': 'application/json',
       },
     }
+
     try {
       const response = await rp(options)
       resolve(response)

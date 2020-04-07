@@ -1,5 +1,5 @@
 const rp = require('request-promise')
-const { options } = require('./helpers')
+const { mongoClient, options } = require('./helpers')
 
 require('dotenv').config()
 
@@ -25,21 +25,24 @@ const dialog = {
   },
 }
 
-const launchSearchSpots = async (triggerId, token) => {
-  const data = {
-  bearerToken: process.env.SLACK_TOKEN_VERYS,
-  ...dialog,
-  token: token,
-  trigger_id: triggerId,
-}
-console.log('dialog open data: ', data);
-try {
-  const response = await rp(options({ data, uri: 'https://slack.com/api/dialog.open' }))
-  console.log('response from dialog open: ', response);
-  return response
-} catch (err) {
-  return err
-}
+const launchSearchSpots = async ({ teamId, triggerId, token }) => {
+  const collection = await mongoClient(teamId)
+  const data = await collection.findOne()
+  console.log('data: ', data);
+  const requestData = {
+    bearerToken: data.access_token,
+    ...dialog,
+    token: token,
+    trigger_id: triggerId,
+  }
+  console.log('dialog open data: ', data);
+  try {
+    const response = await rp(options({ data: requestData, uri: 'https://slack.com/api/dialog.open' }))
+    console.log('response from dialog open: ', response);
+    return response
+  } catch (err) {
+    return err
+  }
 }
 
 module.exports = launchSearchSpots

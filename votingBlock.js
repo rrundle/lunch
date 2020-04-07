@@ -2,7 +2,8 @@ const { v4: uuidv4 } = require('uuid')
 const { triggerSlackPoll } = require('./helpers')
 
 const votingBlock = async ({ lunchData, userId, vote: voteValue }) => {
-  const refreshedData = voteValue === 'newPoll' ? await triggerSlackPoll('test', '') : lunchData
+  const { team: { id: teamId } = {} } = lunchData
+  const refreshedData = voteValue === 'newPoll' ? await triggerSlackPoll(teamId, '') : lunchData
   console.log('refreshedData: ', refreshedData);
   if (voteValue && voteValue !== 'newPoll') {
     console.log('voteValue NOT A NEW POLL!: ', voteValue);

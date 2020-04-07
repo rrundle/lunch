@@ -22,6 +22,7 @@
     "express-favicon": "^2.0.1",
     "moment": "^2.22.2",
     "mongodb": "^3.2.3",
+    "qs": "^6.9.3",
     "request": "^2.88.0",
     "request-promise": "^4.2.5",
     "tiny-shortener": "^2.2.3",

@@ -2,20 +2,20 @@ const express = require('express')
 const request = require('request')
 const cors = require('cors')
 const bodyParser = require('body-parser')
+const qs = require('qs')
 const { tiny } = require('tiny-shortener')
 const rp = require('request-promise')
-const MongoClient = require('mongodb').MongoClient
+
+const { mongoClient } = require('./helpers')
 
 const {
   getRandomInt,
   getRandomSpot,
-  getSpecificLunchSpots,
   options,
   shuffle,
   triggerSlackPoll
 } = require('./helpers')
 const {
-  slackOptions,
   mongoUrl,
   YELP_TOKEN
 } = require('./config')
@@ -44,11 +44,15 @@ app.post('/lunch', async (req, res) => {
     channel_id: channelId,
     response_url: webhookUrl,
     team_domain: teamDomain,
+    team_id: teamId,
     text = '',
     token,
     trigger_id: triggerId,
     user_id: userId,
   } = req.body
+  console.log('req.body: ', req.body);
+
+  console.log('req.body from /: ', req.body);
   res.status(200).json({
     response_type: 'in_channel',
     text: 'Thanks! Hang tight...'
@@ -56,7 +60,7 @@ app.post('/lunch', async (req, res) => {
 
   if (text === 'add') {
     console.log('text = add');
-    return launchSearchSpots(triggerId, token)
+    return launchSearchSpots({ teamId, triggerId, token })
   }
 
   if (text === 'help') {
@@ -64,13 +68,13 @@ app.post('/lunch', async (req, res) => {
     return buildHelpBlock(req.body)
   }
 
-  const lunchData = await triggerSlackPoll('test', text)
+  const lunchData = await triggerSlackPoll(teamId, text)
   let data = {
-    bearerToken: process.env.SLACK_TOKEN_VERYS,
+    bearerToken: process.env.SLACK_TOKEN,
     callback_id: 'poll_creator',
     channel: channelId,
     response_type: 'in_channel',
-    token: slackOptions[teamDomain].token,
+    token,
     trigger_id: triggerId,
     user: userId,
   }
@@ -127,63 +131,57 @@ app.post('/lunch/interactive', async (req, res) => {
     if (type === 'block_actions') {
       res.sendStatus(200)
       const [submission] = request.actions
+      const { team: { id: teamId } = {} } = request
       console.log('submission: ', submission);
       // check if its a spot addition request
       if (submission.text.text === 'Choose') {
         // spot addition request
         const selectedSpot = JSON.parse(submission.value)
-        MongoClient.connect(mongoUrl, { useNewUrlParser: true }, (err, client) => {
-          const db = client.db('lunch')
-          const collection = db.collection('test')
-          // insert in the database, but not if another spot with the same name
-          // already exists
-          collection.updateOne(selectedSpot, { $set: selectedSpot }, { upsert: true })
-            .then(async data => {
-              // send back message saying successful, failure, or already added
-              const options = {
-                method: 'POST',
-                uri: 'https://slack.com/api/chat.postEphemeral',
-                body: JSON.stringify({
-                  channel: request.channel.id,
-                  token: request.token,
-                  user: request.user.id,
-                  type: 'section',
-                  text: data.upsertedCount ?
-                    `:tada: ${selectedSpot.name} has been added to the list!` :
-                    ':dancer: Great minds think alike! This spot has already been added. Try another place.',
-                }),
-                headers: {
-                  Authorization: `Bearer ${process.env.SLACK_TOKEN_VERYS}`,
-                  'Content-Type': 'application/json',
-                },
-              }
-              try {
-                const response = await rp(options)
-              } catch (err) {
-                console.log('err: ', err);
-              }
-
-            })
-            .catch(err => {
-              console.log('err from db: ', err);
-            })
-
-          client.close()
-        })
+        console.log('selectedSpot: ', selectedSpot);
+        console.log('teamId: ', teamId);
+        const collection = await mongoClient(teamId)
+        // insert in the database, but not if another spot with the same name
+        // already exists
+        const data = await collection.updateOne(selectedSpot, { $set: selectedSpot }, { upsert: true })
+        console.log('data from insertion: ', data);
+        // send back message saying successful, failure, or already added
+        const options = {
+          method: 'POST',
+          uri: request.response_url,
+          body: JSON.stringify({
+            channel: request.channel.id,
+            token: request.token,
+            user: request.user.id,
+            type: 'section',
+            text: data.upsertedCount ?
+              `:tada: ${selectedSpot.name} has been added to the list!` :
+              ':dancer: Great minds think alike! This spot has already been added. Try another place.',
+          }),
+          headers: {
+            Authorization: `Bearer ${process.env.SLACK_TOKEN}`,
+            'Content-Type': 'application/json',
+          },
+        }
+        try {
+          const response = await rp(options)
+        } catch (err) {
+          console.log('err: ', err);
+        }
       } else {
         // its a vote or new poll request
         const { value: voteValue } = submission
         const vote = voteValue === 'newPoll' ? 'newPoll' : JSON.parse(voteValue)
         const userId = voteValue === 'newPoll' ? req.body : request.user.id
+        console.log('request: ', request);
 
         try {
           // Repalace original with user's vote
           let data = {
-            bearerToken: process.env.SLACK_TOKEN_VERYS,
+            bearerToken: process.env.SLACK_TOKEN,
             callback_id: 'poll_creator',
             channel: request.channel.id,
             replace_original: true,
-            token: slackOptions.verys.token,
+            token: request.token,
             trigger_id: request.trigger_id,
           }
 
@@ -196,6 +194,63 @@ app.post('/lunch/interactive', async (req, res) => {
         }
       }
     }
+  }
+})
+
+/* Oauth endpoint for new users */
+app.get('/oauth', async (req, res) => {
+  console.log('req.url: ', req.url);
+  console.log('req.query: ', req.query);
+  const { code } = req.query
+  console.log('code: ', code);
+
+  const body = qs.stringify({
+    client_id: process.env.CLIENT_ID,
+    client_secret: process.env.CLIENT_SECRET,
+    code,
+  })
+  console.log('body: ', body);
+
+  const options = {
+    method: 'POST',
+    uri: 'https://slack.com/api/oauth.v2.access',
+    body,
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+  }
+  console.log('options: ', options);
+  const request = await rp(options)
+  console.log('request: ', request);
+  const response = JSON.parse(request)
+  console.log('response: ', response);
+  if (response.ok) {
+    // insert the new client into the database
+    const { team: { id: teamId } = {} } = response
+    if (teamId) {
+      const collection = await mongoClient(teamId)
+      try {
+        const matches = await collection.findOne()
+
+        console.log('matches: ', matches);
+        if (matches._id) {
+          console.log('found a match, not inserting');
+          res.sendStatus(200)
+        }
+        // new client, insert
+        const inserted = await collection.insertOne({
+          name: 'newClient',
+          ...response
+        })
+        console.log('data from insertion: ', inserted);
+        res.sendStatus(200)
+      } catch(err) {
+        console.log('no good: ', err);
+        res.sendStatus(400)
+      }
+    }
+  } else {
+    res.sendStatus(400)
   }
 })
 
