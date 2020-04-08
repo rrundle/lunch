@@ -50,21 +50,17 @@ app.post('/lunch', async (req, res) => {
     trigger_id: triggerId,
     user_id: userId,
   } = req.body
-  console.log('req.body: ', req.body);
 
-  console.log('req.body from /: ', req.body);
   res.status(200).json({
     response_type: 'in_channel',
     text: 'Thanks! Hang tight...'
   })
 
   if (text === 'add') {
-    console.log('text = add');
     return launchSearchSpots({ teamId, triggerId, token })
   }
 
   if (text === 'help') {
-    console.log('text = help');
     return buildHelpBlock(req.body)
   }
 
@@ -83,13 +79,12 @@ app.post('/lunch', async (req, res) => {
     data.text = ':exclamation: You don\'t have enough lunch spots saved to create a poll. You can do so by typing "/lunch add"'
   } else {
     data.text = 'Thanks!'
-    data.blocks = await votingBlock({ lunchData, userId: null, vote: null })
+    data.blocks = await votingBlock({ lunchData, user: null, vote: null })
   }
-  console.log('data: for poll: ', data);
   try {
     rp(options({ data, uri: webhookUrl }))
   } catch(err) {
-    console.log('error from creating poll: ', err);
+    console.error('error from creating poll: ', err);
   }
 })
 
@@ -104,7 +99,6 @@ app.post('/lunch/interactive', async (req, res) => {
 
     if (type === 'dialog_submission') {
       if (callback_id === 'search_spot') {
-        console.log('returning a success, close the dialog');
         res.status(204).json({
           body: '',
           isBase64Encoded: true,
@@ -124,7 +118,7 @@ app.post('/lunch/interactive', async (req, res) => {
           } = yelpResults
           const interactiveMessage = await buildInteractiveMessage(businesses, request)
         } catch(err) {
-          console.log('uh oh problem with yelp search: ', err);
+          console.error('uh oh problem with yelp search: ', err);
         }
       }
     }
@@ -132,18 +126,14 @@ app.post('/lunch/interactive', async (req, res) => {
       res.sendStatus(200)
       const [submission] = request.actions
       const { team: { id: teamId } = {} } = request
-      console.log('submission: ', submission);
       // check if its a spot addition request
       if (submission.text.text === 'Choose') {
         // spot addition request
         const selectedSpot = JSON.parse(submission.value)
-        console.log('selectedSpot: ', selectedSpot);
-        console.log('teamId: ', teamId);
         const collection = await mongoClient(teamId)
         // insert in the database, but not if another spot with the same name
         // already exists
         const data = await collection.updateOne(selectedSpot, { $set: selectedSpot }, { upsert: true })
-        console.log('data from insertion: ', data);
         // send back message saying successful, failure, or already added
         const options = {
           method: 'POST',
@@ -165,17 +155,14 @@ app.post('/lunch/interactive', async (req, res) => {
         try {
           const response = await rp(options)
         } catch (err) {
-          console.log('err: ', err);
+          console.error('err: ', err);
         }
       } else {
         // its a vote or new poll request
         const { value: voteValue } = submission
         const vote = voteValue === 'newPoll' ? 'newPoll' : JSON.parse(voteValue)
-        const userId = voteValue === 'newPoll' ? req.body : request.user.id
-        console.log('request: ', request);
 
         try {
-          // Repalace original with user's vote
           let data = {
             bearerToken: process.env.SLACK_TOKEN,
             callback_id: 'poll_creator',
@@ -185,12 +172,12 @@ app.post('/lunch/interactive', async (req, res) => {
             trigger_id: request.trigger_id,
           }
 
-          data.blocks = await votingBlock({ lunchData: request, userId, vote })
+          data.blocks = await votingBlock({ lunchData: request, user: req.body, vote })
+          console.log('data.blocks: ', data.blocks);
 
           const response = await rp(options({ data, uri: request.response_url }))
-          console.log('response from votingBlock: ', response);
         } catch(err) {
-          console.log('err: ', err);
+          console.error('err: ', err);
         }
       }
     }
@@ -199,17 +186,13 @@ app.post('/lunch/interactive', async (req, res) => {
 
 /* Oauth endpoint for new users */
 app.get('/oauth', async (req, res) => {
-  console.log('req.url: ', req.url);
-  console.log('req.query: ', req.query);
   const { code } = req.query
-  console.log('code: ', code);
 
   const body = qs.stringify({
     client_id: process.env.CLIENT_ID,
     client_secret: process.env.CLIENT_SECRET,
     code,
   })
-  console.log('body: ', body);
 
   const options = {
     method: 'POST',
@@ -219,11 +202,8 @@ app.get('/oauth', async (req, res) => {
       'Content-Type': 'application/x-www-form-urlencoded',
     },
   }
-  console.log('options: ', options);
   const request = await rp(options)
-  console.log('request: ', request);
   const response = JSON.parse(request)
-  console.log('response: ', response);
   if (response.ok) {
     // insert the new client into the database
     const { team: { id: teamId } = {} } = response
@@ -232,21 +212,17 @@ app.get('/oauth', async (req, res) => {
       try {
         const matches = await collection.findOne()
 
-        console.log('matches: ', matches);
         if (matches._id) {
-          console.log('found a match, not inserting');
-          res.sendStatus(200)
+          return res.sendStatus(200)
         }
         // new client, insert
         const inserted = await collection.insertOne({
           name: 'newClient',
           ...response
         })
-        console.log('data from insertion: ', inserted);
-        res.sendStatus(200)
+        return res.sendStatus(200)
       } catch(err) {
-        console.log('no good: ', err);
-        res.sendStatus(400)
+        return res.sendStatus(400)
       }
     }
   } else {
@@ -267,7 +243,7 @@ app.get('/clear', (req, res) => {
 
       collection.deleteMany({})
       .then(data => {
-        console.log('data from delete: ', data);
+        console.info('data from delete: ', data);
         res.set({
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'DELETE,GET,PATCH,POST,PUT',

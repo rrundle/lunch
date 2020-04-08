@@ -3,7 +3,6 @@ const { mongoClient } = require('./helpers')
 
 const buildHelpBlock = (body) => {
   return new Promise(async (resolve, reject) => {
-    console.log('body: ', body);
     const message = {
       blocks: [
         {
@@ -51,8 +50,6 @@ const buildHelpBlock = (body) => {
 
     const collection = await mongoClient(body.team_id)
     const user = await collection.findOne()
-    console.log('user: ', user);
-    console.log('user.incoming_webhook.channel_id: ', user.incoming_webhook.channel_id);
 
     const options = {
       method: 'POST',
@@ -68,13 +65,11 @@ const buildHelpBlock = (body) => {
         'Content-Type': 'application/json',
       },
     }
-    console.log('options: ', options);
     try {
       const response = await rp(options)
-      console.log('response: ', response);
       resolve(response)
     } catch (err) {
-      console.log('err ', err);
+      console.error('err ', err);
       reject(err)
     }
   })

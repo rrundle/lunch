@@ -1,12 +1,16 @@
 const { v4: uuidv4 } = require('uuid')
-const { triggerSlackPoll } = require('./helpers')
+const qs = require('qs')
+const rp = require('request-promise')
 
-const votingBlock = async ({ lunchData, userId, vote: voteValue }) => {
-  const { team: { id: teamId } = {} } = lunchData
+const { mongoClient, triggerSlackPoll } = require('./helpers')
+require('dotenv').config()
+
+const votingBlock = async ({ lunchData, vote: voteValue }) => {
+  console.log('lunchData in votes: ', lunchData);
+  console.log('voteValue: ', voteValue);
+  const { team: { id: teamId } = {}, user } = lunchData
   const refreshedData = voteValue === 'newPoll' ? await triggerSlackPoll(teamId, '') : lunchData
-  console.log('refreshedData: ', refreshedData);
   if (voteValue && voteValue !== 'newPoll') {
-    console.log('voteValue NOT A NEW POLL!: ', voteValue);
     // its a vote not the initial block creation
     const existingBlocks = lunchData.message.blocks
     const [action] = lunchData.actions
@@ -21,53 +25,108 @@ const votingBlock = async ({ lunchData, userId, vote: voteValue }) => {
       const firstVote = existingBlocks.find(block => {
         return (((block || {}).elements || [])[0] || {}).value === 'newPoll'
       })
-      console.log('firstVote: ', firstVote);
       if (firstVote) existingBlocks.pop()
       /*
        * Theres a lot of mutation here but thats on purpose, we need to change the block in place
        * Slack requires you replace the entire block, you cant edit individual sections
        */
+      // Check if we already have a voting results block for this spot
       if (existingBlocks[matchingBlockIndex + 1] && `${existingBlocks[matchingBlockIndex].block_id}1` === existingBlocks[matchingBlockIndex + 1].block_id) {
         // we already have a voting results block
         // check if user already selected this vote, if so, remove their vote, only one per location
-        const existingVotes = existingBlocks[matchingBlockIndex + 1].text.text.split(' ')
-        if (existingVotes.includes(`<@${userId}>`)) {
+        const votesSection = existingBlocks[matchingBlockIndex + 1].elements
+        const existingVotes = existingBlocks[matchingBlockIndex + 1].elements.find(element => element.alt_text.includes(user.name))
+        if (existingVotes) {
           // user already clicked on this, remove their vote or remove the whole section
           // if they are the only voter
-          if (existingVotes.length === 1) {
+          if (Object.keys(existingVotes).length) {
             // user is the only voter, remove the section
             existingBlocks.splice(matchingBlockIndex + 1, 1)
           } else {
-            // just remove the voter from the array then re-concatenate
-            const index = existingVotes.indexOf(userId)
-            existingVotes.splice(index, 1)
-            const newVotesText = existingVotes.join(' ')
+            // just remove the voter from the array
+            const index = votesSection.findIndex(vote => vote.alt_text === user.name)
+            if (index > -1) {
+              votesSection.splice(index, 1)
+            }
 
-            existingBlocks[matchingBlockIndex + 1].text.text = newVotesText
+            existingBlocks[matchingBlockIndex + 1].elements = votesSection
             // re-calculate the number of votes
-            const allVotes = existingBlocks[matchingBlockIndex + 1].text.text.split(' ')
-            const numVotes = allVotes.length
-            existingBlocks[matchingBlockIndex + 1].fields[0].text = `_Total Votes: *${numVotes}*_`
+            const numVotes = votesSection.length - 1
+            existingBlocks[matchingBlockIndex + 1].elements[numVotes].text = `_Total Votes: *${numVotes}*_`
           }
         } else {
-          // user has not voted yet, just concat them onto the block
-          const newText = existingBlocks[matchingBlockIndex + 1].text.text.concat(' ', `<@${userId}>`)
-          existingBlocks[matchingBlockIndex + 1].text.text = newText
+          // user has not voted yet, add new markdown to the context section
+          const collection = await mongoClient(teamId)
+          const data = await collection.find().toArray()
+          const client = data.find(element => element.name === 'newClient')
 
-          const allVotes = existingBlocks[matchingBlockIndex + 1].text.text.split(' ')
-          const numVotes = allVotes.length
-          existingBlocks[matchingBlockIndex + 1].fields[0].text = `_Total Votes: *${numVotes}*_`
+          const body = qs.stringify({
+            token: client.access_token,
+            user: user.id,
+          })
+
+          const options = {
+            method: 'GET',
+            uri: `https://slack.com/api/users.info?${body}`,
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+          }
+          const request = await rp(options)
+          const profile = JSON.parse(request)
+          const {
+            name: userName,
+            profile: {
+              image_24: userAvatar,
+            } = {},
+          } = profile.user
+
+
+          existingBlocks[matchingBlockIndex + 1].elements.unshift({
+            type: 'image',
+            image_url: userAvatar,
+            alt_text: userName,
+          })
+          const numVotes = existingBlocks[matchingBlockIndex + 1].elements.length - 1
+          existingBlocks[matchingBlockIndex + 1].elements[numVotes].text = `_Total Votes: *${numVotes}*_`
         }
       } else {
+        console.log('STARTING A NEW VOTING BLOCK');
         // no match, start a new voting results block
-        existingBlocks.splice(matchingBlockIndex + 1, 0, {
-          type: 'section',
-          block_id: existingBlocks[matchingBlockIndex].block_id.concat('', '1'),
-          text: {
-            type: 'mrkdwn',
-            text: `<@${userId}>`,
+        // user has not voted yet, add new markdown to the context section
+        const collection = await mongoClient(teamId)
+        const data = await collection.find().toArray()
+        const client = data.find(element => element.name === 'newClient')
+
+        const body = qs.stringify({
+          token: client.access_token,
+          user: user.id,
+        })
+
+        const options = {
+          method: 'GET',
+          uri: `https://slack.com/api/users.info?${body}`,
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
           },
-          fields: [
+        }
+        const request = await rp(options)
+        const profile = JSON.parse(request)
+        const {
+          name: userName,
+          profile: {
+            image_24: userAvatar,
+          } = {},
+        } = profile.user
+        existingBlocks.splice(matchingBlockIndex + 1, 0, {
+          type: 'context',
+          block_id: existingBlocks[matchingBlockIndex].block_id.concat('', '1'),
+          elements: [
+            {
+              type: 'image',
+              image_url: userAvatar,
+              alt_text: userName,
+            },
             {
               type: 'mrkdwn',
               text: '_Total Votes: *1*_',
@@ -101,7 +160,7 @@ const votingBlock = async ({ lunchData, userId, vote: voteValue }) => {
         type: 'button',
         text: {
           type: 'plain_text',
-          text: ':one:',
+          text: 'Vote',
           emoji: true
         },
         value: refreshedData.spot1.value
@@ -121,7 +180,7 @@ const votingBlock = async ({ lunchData, userId, vote: voteValue }) => {
         type: 'button',
         text: {
           type: 'plain_text',
-          text: ':two:',
+          text: 'Vote',
           emoji: true
         },
         value: refreshedData.spot2.value
@@ -141,7 +200,7 @@ const votingBlock = async ({ lunchData, userId, vote: voteValue }) => {
         type: 'button',
         text: {
           type: 'plain_text',
-          text: ':three:',
+          text: 'Vote',
           emoji: true
         },
         value: refreshedData.spot3.value

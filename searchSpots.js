@@ -28,17 +28,14 @@ const dialog = {
 const launchSearchSpots = async ({ teamId, triggerId, token }) => {
   const collection = await mongoClient(teamId)
   const data = await collection.findOne()
-  console.log('data: ', data);
   const requestData = {
     bearerToken: data.access_token,
     ...dialog,
     token: token,
     trigger_id: triggerId,
   }
-  console.log('dialog open data: ', data);
   try {
     const response = await rp(options({ data: requestData, uri: 'https://slack.com/api/dialog.open' }))
-    console.log('response from dialog open: ', response);
     return response
   } catch (err) {
     return err

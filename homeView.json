@@ -5,29 +5,53 @@
          "type":"section",
          "text":{
             "type":"mrkdwn",
-            "text":"A simple stack of blocks for the simple sample Block Kit Home tab."
+            "text":"Lunch Poll lets you and your team search for lunch spots, save them to your teams own set of lunch spots, and trigger a poll of random lunch spots so everyone can vote."
          }
       },
       {
-         "type":"actions",
-         "elements":[
-            {
-               "type":"button",
-               "text":{
-                  "type":"plain_text",
-                  "text":"Action A",
-                  "emoji":true
-               }
-            },
-            {
-               "type":"button",
-               "text":{
-                  "type":"plain_text",
-                  "text":"Action B",
-                  "emoji":true
-               }
-            }
-         ]
+        "type": "divider"
+      },
+      {
+         "type":"section",
+         "text":{
+            "type":"mrkdwn",
+            "text":"*Features*"
+         }
+      },
+      {
+         "type":"section",
+         "text":{
+            "type":"mrkdwn",
+            "text":"*Search for lunch spots*"
+         }
+      },
+      {
+         "type":"section",
+         "text":{
+            "type":"mrkdwn",
+            "text":"*Save the lunch spots*"
+         }
+      },
+      {
+         "type":"section",
+         "text":{
+            "type":"mrkdwn",
+            "text":"*Trigger a random poll*"
+         }
+      },
+      {
+         "type":"section",
+         "text":{
+            "type":"mrkdwn",
+            "text":"*Trigger a poll by lunch type*"
+         }
+      },
+      {
+         "type":"section",
+         "text":{
+            "type":"mrkdwn",
+            "text":"*Refresh the poll*"
+         }
       }
    ]
 }

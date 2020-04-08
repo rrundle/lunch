@@ -9,6 +9,7 @@ const getRandomInt = (min, max) => {
   return Math.floor(Math.random() * (max - min)) + min
 }
 
+// recursive function to find new spots to fill the array
 const getRandomSpot = (arr, filteredArray) => {
   let extraRandomSpot = arr[getRandomInt(0, arr.length)]
   const isDuplicate = filteredArray.find(obj => (obj || {}).name === extraRandomSpot.name)
@@ -23,10 +24,8 @@ const getSpecificLunchSpots = ({ appId, text: type }) => {
   return new Promise(async (resolve) => {
     const collection = await mongoClient(appId)
     const data = await collection.find().toArray()
-    console.log('data from db: ', data);
     // filter out the identifier entry
     const onlySpots = data.filter(entry => entry.alias)
-    console.log('onlySpots: ', onlySpots);
     // if less than 3 we dont have enough to make a poll, return an empty array
     if (onlySpots.length < 3) return resolve([])
 
@@ -64,8 +63,6 @@ const getSpecificLunchSpots = ({ appId, text: type }) => {
 
 const options = ({ data = {}, uri = '' }) => {
   const { bearerToken, ...requestData } = data
-  console.log('requestData: ', requestData);
-  console.log('bearerToken: ', bearerToken);
   return {
     method: 'POST',
     uri,
@@ -95,7 +92,6 @@ const shuffle = (array) => {
 
 const triggerSlackPoll = async (appId, text) => {
   const lunchList = await getSpecificLunchSpots({ appId, text })
-  console.log('lunchList: ', lunchList);
   if (!lunchList.length) return []
   const url1 = await tiny(lunchList[0].url)
   const url2 = await tiny(lunchList[1].url)
@@ -121,7 +117,6 @@ const triggerSlackPoll = async (appId, text) => {
 
 const mongoClient = (teamId) => {
   return new Promise((resolve, reject) => {
-    console.log('mongoUrl: ', mongoUrl);
     MongoClient.connect(mongoUrl, { useNewUrlParser: true }, (err, client) => {
       if (err) reject(err)
       const db = client.db('lunch')
