@@ -1,10 +1,8 @@
 import React, { Fragment } from 'react'
-import Breadcrumb from '../common/breadcrumb'
 
 const Pricing = () => {
   return (
     <Fragment>
-      <Breadcrumb title="Pricing" parent="Pricing" />
       <div className="container-fluid">
         <div className="row">
           <div className="col-sm-12">

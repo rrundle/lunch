@@ -1,10 +1,16 @@
 import React, { useEffect, useState } from 'react'
+import { connect } from 'react-redux'
 import qs from 'qs'
-import { baseUri } from '../config'
+import { Redirect } from 'react-router-dom'
 
-const SlackAuth = () => {
+import { baseUri } from '../config'
+import Loader from '../components/loader'
+import { ADD_USER } from '../constant/actionTypes'
+
+const SlackAuth = ({ addUser }) => {
   console.log('baseUri: ', baseUri)
   const [working, setWorking] = useState(true)
+  const [redirect, setRedirect] = useState(false)
 
   useEffect(() => {
     const authUser = async (parsed) => {
@@ -27,7 +33,9 @@ const SlackAuth = () => {
         if (!response.ok) throw new Error('No slack Auth')
         const body = await response.json()
         console.log('body: ', body)
+        addUser(body)
         setWorking(false)
+        setRedirect(true)
       } catch (err) {
         setWorking(false)
         console.error(err)
@@ -38,10 +46,19 @@ const SlackAuth = () => {
     console.log('query: ', query)
     const parsed = qs.parse(query)
     console.log('parsed: ', parsed)
-    if (parsed) authUser(parsed)
-  }, [])
+    if (Object.keys(parsed).length) authUser(parsed)
+  }, [addUser])
 
-  return working ? <div>Doing Auth...</div> : <div>DONE!</div>
+  return (
+    <>
+      <Loader show={working} />
+      <>{redirect ? <Redirect to="/welcome" /> : <div>UH OH PROBLEMO!</div>}</>
+    </>
+  )
 }
 
-export default SlackAuth
+const mapDispatchToProps = (dispatch) => ({
+  addUser: (value) => dispatch({ type: ADD_USER, value }),
+})
+
+export default connect(null, mapDispatchToProps)(SlackAuth)

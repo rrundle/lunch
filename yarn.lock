@@ -10363,7 +10363,7 @@ react-ratings-declarative@^3.4.1:
     prop-types "^15.6.0"
     react "^16.2.0"
 
-react-redux@^7.0.3:
+react-redux@^7.0.3, react-redux@^7.2.0:
   version "7.2.0"
   resolved "https://registry.yarnpkg.com/react-redux/-/react-redux-7.2.0.tgz#f970f62192b3981642fec46fd0db18a074fe879d"
   integrity sha512-EvCAZYGfOLqwV7gh849xy9/pt55rJXPwmYvI4lilPM5rUT/1NxuuN59ipdBksRVSvz0KInbPnp4IfoXJXCqiDA==

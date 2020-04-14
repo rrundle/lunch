@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import logo from '../assets/images/lunch-poll-logo.svg'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
@@ -19,7 +19,7 @@ const Signin = () => (
                   <div className="text-center">
                     <img src={logo} alt="" />
                   </div>
-                  <div className="card mt-4">
+                  <div className="card mt-4 login-card">
                     <div className="card-body">
                       <SlackSignIn />
                     </div>

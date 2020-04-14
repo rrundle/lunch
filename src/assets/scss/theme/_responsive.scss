@@ -188,7 +188,7 @@
       background: linear-gradient(to top, #01397d 8%, transparent 92%);
     }
   }
- 
+
 }
 @media (max-width: 1280px) {
   //landing page
@@ -1793,7 +1793,7 @@
     }
   }
  }
-  
+
   // search page
   .search-page {
     .borderb-tab-primary {
@@ -1820,7 +1820,7 @@
       }
     }
   }
-  // image cropper 
+  // image cropper
   .crop-portion {
     margin-left: 20px;
     margin-top: 20px;
@@ -2029,9 +2029,14 @@
       .sidebar {
         height: calc(100vh - 60px);
       }
-      
+
       footer {
         margin-left: 0;
+      }
+      .page-main-header {
+        &.logo-wrapper-full {
+          display: none;
+        }
       }
       .page-header {
         .row {
@@ -2054,7 +2059,7 @@
             transform: translate(-265px);
           }
         }
-       
+
       }
     }
     &.compact-page {
@@ -2527,6 +2532,12 @@
       margin-left: 0;
       width: 100%;
       .main-header-right{
+        .dashboard-logo {
+          max-width: 35px;
+        }
+        .dashboard-text {
+          display: none;
+        }
         .nav-right{
           position: unset;
           padding: 0;
@@ -2542,22 +2553,9 @@
             }
           }
           > ul{
-            top: 60px;
-            position: absolute;
-            z-index: -1;
-            background-color: $white;
-            transition: all linear 0.3s;
-            box-shadow: 0 2px 2px 2px #efefef;
-            width: 100%;
-            left: 0;
-            padding: 0 40px;
-            transform: translateY(-35px) scaleY(0);
-            opacity: 0;
-            visibility: hidden;
             &.open{
               z-index: 1;
               opacity: 1;
-              transform: translateY(0px) scaleY(1);
               visibility: visible;
             }
             > li{
@@ -2903,7 +2901,7 @@
               }
           }
       }
-          
+
     }
     .card-header{
         padding: 20px !important;
@@ -2921,7 +2919,7 @@
       }
     }
   }
-  // timeline 
+  // timeline
   .vertical-timeline {
     width: 100% !important;
   }
@@ -3883,7 +3881,7 @@
       top: 48%;
     }
   }
-  // dropdown 
+  // dropdown
   .navDrop {
     ul {
       .nav-link {
@@ -3891,7 +3889,7 @@
       }
     }
   }
-  // timepicker 
+  // timepicker
   .time_picker_wrapper2 {
     display: block;
   }
@@ -4116,7 +4114,7 @@
   .scrollarea {
     max-height: 175px;
   }
-  // image cropper 
+  // image cropper
   .input-cropper {
     width: 100%;
   }
@@ -5484,7 +5482,7 @@
               }
           }
       }
-          
+
     }
     .card-header{
         padding: 15px !important;

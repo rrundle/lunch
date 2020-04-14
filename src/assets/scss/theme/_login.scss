@@ -35,6 +35,10 @@ $url_1: url(../../images/other-images/auth-bg-1.jpg);
       }
     }
   }
+  .login-card {
+    align-items: center;
+    display: flex;
+  }
   h3 {
     color: $dark-color;
     font-weight: 600;
@@ -127,8 +131,3 @@ $url_1: url(../../images/other-images/auth-bg-1.jpg);
 /**=====================
     25. Authentication CSS Ends
 ==========================**/
-
-
-
-
-

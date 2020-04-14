@@ -178,6 +178,34 @@ app.post('/lunch/interactive', async (req, res) => {
   }
 })
 
+// Send welcome message when user isntalls the app
+app.put('/welcome', async (req, res) => {
+  const body = req.body
+  console.log('body: ', body)
+  const { accessToken, channelId } = body
+
+  const data = {
+    channel: channelId,
+    text: 'Welcome to Lunch Poll, use `/lunch help` for a list of commands',
+  }
+  console.log('data: ', data)
+
+  const options = {
+    method: 'POST',
+    uri: 'https://slack.com/api/chat.postMessage',
+    data: JSON.stringify(data),
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+  }
+  const request = await rp(options)
+  const response = JSON.parse(request)
+  console.log('response: ', response)
+  if (!response.ok) res.sendStatus(400)
+  else res.sendStatus(200)
+})
+
 // /* Oauth endpoint for new users */
 app.post('/oauth', async (req, res) => {
   const { code } = req.body

@@ -5,8 +5,8 @@ $theme-body-sub-title-color: #777777;
 
 // Theme colors variables
 
-$primary-color: #4466f2;
-$secondary-color: #1ea6ec;
+$primary-color: #BE915B;
+$secondary-color: #44454A;
 $success-color: #22af47 ;
 $info-color   : #007bff  ;
 $warning-color: #ff9f40;
@@ -23,7 +23,7 @@ $auth-bg-color:#fafafa;
 $light : #f6f6f6;
 $light-text: #999;
 
-$dark-primary: #448aff;
+$dark-primary: #BE915B;
 $pitch-color: #fe8a7d;
 $flower-pink: #fb6d9d;
 $dark-sky: #536dfe;
@@ -254,6 +254,7 @@ $sidebar-arrow-color: $theme-body-font-color;
 $sidebar-open-icon: "\f107";
 $sidebar-close-icon:"\f105";
 $sidebar-icon-font-family: $font-awesome;
+$logo-font-family: 'Londrina Outline', cursive;
 
 
 
@@ -288,4 +289,3 @@ $main-header-right-nav-right :  0px;
 $main-header-right-nav-icon-size :  18px;
 $main-header-right-nav-icon-color :  $primary-color;
 $main-header-right-nav-icon-margin-top :  10px;
-

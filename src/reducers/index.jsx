@@ -1,20 +1,8 @@
 import { combineReducers } from 'redux'
-import TodoApp from './todos.reducer'
-import EmailApp from './email.reducer'
-import ChatApp from './chat.reducer'
-import EcommerceApp from './ecommerce.reducer'
-import WishlistApp from './wishlist.reducer'
-import Filters from './filters.reducer'
-import Customizer from './customizer.reducer'
+import LunchPollAdmin from './lunchPoll.reducer'
 
 const reducers = combineReducers({
-  TodoApp,
-  EmailApp,
-  ChatApp,
-  data: EcommerceApp,
-  WishlistApp,
-  filters: Filters,
-  Customizer,
+  LunchPollAdmin,
 })
 
 export default reducers
