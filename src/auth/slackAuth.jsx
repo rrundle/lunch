@@ -15,12 +15,13 @@ const SlackAuth = ({ addUser }) => {
   useEffect(() => {
     const authUser = async (parsed) => {
       console.log('in auth user: ', parsed)
-      const { code } = parsed
+      const { code, state } = parsed
 
       const options = {
         method: 'POST',
         body: JSON.stringify({
           code,
+          state,
         }),
         headers: {
           'Content-Type': 'application/json',

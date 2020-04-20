@@ -5,6 +5,7 @@ const favicon = require('express-favicon')
 const bodyParser = require('body-parser')
 const rp = require('request-promise')
 const qs = require('qs')
+const { check } = require('express-validator')
 
 const { mongoClient, options, triggerSlackPoll } = require('./slack/helpers')
 const launchSearchSpots = require('./slack/searchSpots')
@@ -208,8 +209,17 @@ app.put('/welcome', async (req, res) => {
 
 // /* Oauth endpoint for new users */
 app.post('/oauth', async (req, res) => {
-  const { code } = req.body
+  console.log('req.body: ', req.body)
+  const { code, state } = req.body
   console.log('code: ', code)
+  console.log('state: ', state)
+  // For some reason I get an error with v2 on users.idenitty (login) calls
+  // and an error if I dont use v2 with the signup call
+  // TODO check on API updates in case this might break.
+  const uri =
+    state === 'login'
+      ? 'https://slack.com/api/oauth.access'
+      : 'https://slack.com/api/oauth.v2.access'
 
   const body = qs.stringify({
     client_id: process.env.CLIENT_ID,
@@ -220,47 +230,43 @@ app.post('/oauth', async (req, res) => {
 
   const options = {
     method: 'POST',
-    uri: 'https://slack.com/api/oauth.v2.access',
+    uri,
     body,
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
-      Authorization: 'Basic ',
     },
   }
-  const request = await rp(options)
-  const response = JSON.parse(request)
-  console.log('response: ', response)
-  if (response.ok) {
+
+  try {
+    const request = await rp(options)
+    const response = JSON.parse(request)
+    console.log('response: ', response)
+    if (!response.ok) throw new Error('error ahoy')
     // insert the new client into the database
     const { team: { id: teamId } = {} } = response
-    if (teamId) {
-      const collection = await mongoClient(teamId)
-      try {
-        const matches = await collection.findOne()
+    if (!teamId) throw new Error('no team Id')
+    const collection = await mongoClient(teamId)
+    const matches = await collection.findOne()
 
-        if (matches._id) {
-          return res.status(200).json({
-            message: 'existing user',
-            ...response,
-          })
-        }
-        // new client, insert
-        await collection.insertOne({
-          name: 'newClient',
-          ...response,
-        })
-        return res.send(200).json({
-          message: 'user added to db',
-          ...response,
-        })
-      } catch (err) {
-        return res.send(400).json({
-          message: err,
-        })
-      }
+    if (matches._id) {
+      return res.status(200).json({
+        message: 'existing user',
+        ...response,
+      })
     }
-  } else {
-    res.sendStatus(400)
+    // new client, insert
+    await collection.insertOne({
+      name: 'newClient',
+      ...response,
+    })
+    return res.send(200).json({
+      message: 'user added to db',
+      ...response,
+    })
+  } catch (err) {
+    return res.send(400).json({
+      message: err,
+    })
   }
 })
 

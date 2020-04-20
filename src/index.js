@@ -17,6 +17,7 @@ import Default from './components/dashboard/defaultCompo/default'
 import ForgetPwd from './pages/forgetPwd'
 import ResetPwd from './pages/resetPwd'
 import Signin from './auth/signin'
+import Signup from './auth/signup'
 import Payment from './components/payment'
 import Pricing from './components/price/pricing'
 import Loader from './components/loader'
@@ -62,6 +63,10 @@ function Root() {
               <Route
                 path={`${process.env.PUBLIC_URL}/login`}
                 component={Signin}
+              />
+              <Route
+                path={`${process.env.PUBLIC_URL}/signup`}
+                component={Signup}
               />
               <Route
                 path={`${process.env.PUBLIC_URL}/pages/forgetPwd`}
