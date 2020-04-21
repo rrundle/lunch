@@ -14,3 +14,4 @@ node_modules
 private
 yarn-error.log
 .DS_Store
+notes.js
