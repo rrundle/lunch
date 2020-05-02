@@ -2240,17 +2240,6 @@
       right: 0;
     }
   }
-  @each $var in $alert-name {
-    $i: index($alert-name, $var);
-    .alert-#{$var}.inverse {
-      &:before {
-        border-right: 7px solid nth($alert-color, $i);
-        right: 54px;
-        left: unset;
-        border-left: unset;
-      }
-    }
-  }
   .alert-dismissible {
     .close {
       left: 0;
@@ -2639,7 +2628,7 @@
             + li {
               margin-right: 10px;
               margin-left: unset;
-            } 
+            }
           }
         }
       }
@@ -3662,4 +3651,3 @@
 /**=====================
     60. RTL CSS Ends
 ==========================**/
-

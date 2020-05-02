@@ -3415,12 +3415,6 @@ body {
 				}
 			}
 		}
-		@each $var in $alert-name {
-			$i: index($alert-name, $var);
-			.alert-#{$var}.inverse{
-				color: $dark-all-font-color;
-			}
-		}
 		.alert-theme{
 			span{
 				+ span{
@@ -6519,12 +6513,6 @@ body {
 					border: 1px solid $dark-border-color !important;
 					border-bottom: none !important;
 				}
-			}
-		}
-		@each $var in $alert-name {
-			$i: index($alert-name, $var);
-			.alert-#{$var}.inverse{
-				color: $dark-all-font-color;
 			}
 		}
 		.alert-theme{
@@ -9981,12 +9969,6 @@ body {
 					border: 1px solid $dark-border-color !important;
 					border-bottom: none !important;
 				}
-			}
-		}
-		@each $var in $alert-name {
-			$i: index($alert-name, $var);
-			.alert-#{$var}.inverse{
-				color: $dark-all-font-color;
 			}
 		}
 		.alert-theme{

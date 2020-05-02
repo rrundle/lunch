@@ -2,7 +2,6 @@ import { createStore, applyMiddleware, compose } from 'redux'
 
 // middlewares
 import thunkMiddleware from 'redux-thunk'
-// import logger from 'redux-logger'
 
 // Import custom components
 import reducers from '../reducers/index'
@@ -32,6 +31,12 @@ const store = createStore(
         },
   ),
 )
+
+// Only log to the console in dev mode
+const draw = () =>
+  process.env.ENV === 'dev' ? console.log(store.getState()) : store.getState()
+store.subscribe(draw)
+
 // eslint-disable-next-line
 const unsubscribe = store.subscribe(() => {
   const state = store.getState()

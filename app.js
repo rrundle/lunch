@@ -5,7 +5,6 @@ const favicon = require('express-favicon')
 const bodyParser = require('body-parser')
 const rp = require('request-promise')
 const qs = require('qs')
-const { check } = require('express-validator')
 
 const { mongoClient, options, triggerSlackPoll } = require('./slack/helpers')
 const launchSearchSpots = require('./slack/searchSpots')
@@ -13,6 +12,7 @@ const searchYelp = require('./slack/searchYelp')
 const votingBlock = require('./slack/votingBlock')
 const buildInteractiveMessage = require('./slack/buildInteractiveMessage')
 const buildHelpBlock = require('./slack/buildHelpBlock')
+const { generateJWT, refreshJwt, verifyJwt } = require('./jwt')
 
 require('dotenv').config()
 
@@ -216,10 +216,9 @@ app.post('/oauth', async (req, res) => {
   // For some reason I get an error with v2 on users.idenitty (login) calls
   // and an error if I dont use v2 with the signup call
   // TODO check on API updates in case this might break.
-  const uri =
-    state === 'login'
-      ? 'https://slack.com/api/oauth.access'
-      : 'https://slack.com/api/oauth.v2.access'
+  const uri = state.includes('login')
+    ? 'https://slack.com/api/oauth.access'
+    : 'https://slack.com/api/oauth.v2.access'
 
   const body = qs.stringify({
     client_id: process.env.CLIENT_ID,
@@ -241,33 +240,74 @@ app.post('/oauth', async (req, res) => {
     const request = await rp(options)
     const response = JSON.parse(request)
     console.log('response: ', response)
-    if (!response.ok) throw new Error('error ahoy')
+    if (!response.ok) throw new Error(response.error)
     // insert the new client into the database
     const { team: { id: teamId } = {} } = response
     if (!teamId) throw new Error('no team Id')
     const collection = await mongoClient(teamId)
     const matches = await collection.findOne()
-
-    if (matches._id) {
-      return res.status(200).json({
-        message: 'existing user',
+    console.log('matches: ', matches)
+    if (state === 'login.signup') {
+      console.log('login.signup')
+      console.log('add user to db and auth them')
+      // new client, insert
+      await collection.insertOne({
+        name: 'admin',
         ...response,
       })
+
+      //Auth user
+      const authedUser = await generateJWT({ ...response, ...matches })
+      console.log('authedUser: ', authedUser)
+
+      return res.json({
+        message: 'authed new user',
+        token: authedUser,
+      })
+      // return res.sendStatus(200)
     }
-    // new client, insert
-    await collection.insertOne({
-      name: 'newClient',
-      ...response,
-    })
+
+    // if (matches._id) {
+    //   return res.status(200).json({
+    //     message: 'existing user',
+    //     ...response,
+    //   })
+    // }
+    // // new client, insert
+    // await collection.insertOne({
+    //   name: 'newClient',
+    //   ...response,
+    // })
     return res.send(200).json({
-      message: 'user added to db',
+      message: 'user verified add app to slack',
       ...response,
     })
   } catch (err) {
-    return res.send(400).json({
+    return res.json({
       message: err,
     })
+    // return res.sendStatus(400)
   }
+})
+
+// Check user's auth status and refresh if valid jwt
+app.put('/check-auth', async (req, res) => {
+  const body = req.body
+  console.log('body: ', body)
+  const { authToken } = body
+  const jwtStatus = verifyJwt(authToken)
+  if (!jwtStatus.valid) {
+    return res.send(401).json({
+      authed: false,
+      message: 'invalid jwt',
+    })
+  }
+  const refreshedJwt = refreshJwt(jwtStatus)
+  console.log('refreshedJwt: ', refreshedJwt)
+  res.status(200).json({
+    authed: true,
+    token: refreshedJwt,
+  })
 })
 
 /* CLEAR THE DATABASE */

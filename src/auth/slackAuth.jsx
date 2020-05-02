@@ -2,20 +2,28 @@ import React, { useEffect, useState } from 'react'
 import { connect } from 'react-redux'
 import qs from 'qs'
 import { Redirect } from 'react-router-dom'
+import Cookies from 'js-cookie'
 
 import { baseUri } from '../config'
-import Loader from '../components/loader'
-import { ADD_USER } from '../constant/actionTypes'
+import SvgSpinner from '../components/svg-spinner'
+import { ADD_USER, COMPANY_SIGNUP_INFO } from '../constants/actionTypes'
 
-const SlackAuth = ({ addUser }) => {
+const SlackAuth = ({ addCompanyInfo, addUser }) => {
   console.log('baseUri: ', baseUri)
   const [working, setWorking] = useState(true)
-  const [redirect, setRedirect] = useState(false)
+  const [redirect, setRedirect] = useState({ status: false, to: '' })
 
   useEffect(() => {
     const authUser = async (parsed) => {
       console.log('in auth user: ', parsed)
       const { code, state } = parsed
+      // invalid query params
+      if (!code && !state) {
+        setRedirect({
+          status: true,
+          to: '/signup',
+        })
+      }
 
       const options = {
         method: 'POST',
@@ -34,10 +42,28 @@ const SlackAuth = ({ addUser }) => {
         if (!response.ok) throw new Error('No slack Auth')
         const body = await response.json()
         console.log('body: ', body)
-        addUser(body)
+        if (state === 'login.signup') {
+          console.log('should have jwt now, set cookie and redirect')
+          Cookies.set('lunch-session', body.token)
+          await addUser(body)
+          setRedirect({
+            status: true,
+            to: '/welcome',
+          })
+        } else {
+          await addCompanyInfo(body)
+          setRedirect({
+            status: true,
+            to: '/is-admin',
+          })
+        }
         setWorking(false)
-        setRedirect(true)
       } catch (err) {
+        // TODO show error toast
+        setRedirect({
+          status: true,
+          to: '/signup',
+        })
         setWorking(false)
         console.error(err)
       }
@@ -47,18 +73,32 @@ const SlackAuth = ({ addUser }) => {
     console.log('query: ', query)
     const parsed = qs.parse(query)
     console.log('parsed: ', parsed)
-    if (Object.keys(parsed).length) authUser(parsed)
+    if (Object.keys(parsed).length) {
+      authUser(parsed)
+    } else {
+      console.log('no query')
+      setRedirect({
+        status: true,
+        to: '/signup',
+      })
+    }
   }, [addUser])
 
   return (
     <>
-      <Loader show={working} />
-      <>{redirect ? <Redirect to="/welcome" /> : <div>UH OH PROBLEMO!</div>}</>
+      {working ? (
+        <SvgSpinner show />
+      ) : redirect.status ? (
+        <Redirect to={redirect.to} />
+      ) : (
+        <div>UH OH PROBLEMO!</div>
+      )}
     </>
   )
 }
 
 const mapDispatchToProps = (dispatch) => ({
+  addCompanyInfo: (value) => dispatch({ type: COMPANY_SIGNUP_INFO, value }),
   addUser: (value) => dispatch({ type: ADD_USER, value }),
 })
 
