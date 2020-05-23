@@ -10,6 +10,7 @@ const Signup = () => (
   <div>
     <div className="page-wrapper">
       <div className="container-fluid p-0">
+        <div></div>
         {/* <!-- login page start--> */}
         <div className="authentication-main">
           <div className="row">
@@ -20,6 +21,7 @@ const Signup = () => (
                     <img src={logo} alt="" />
                   </div>
                   <div className="card mt-4 login-card">
+                    {console.log('hello????')}
                     <div className="card-body">
                       <a href="https://slack.com/oauth/v2/authorize?client_id=224182028598.1018140415783&scope=chat:write,commands,incoming-webhook,users:read&user_scope=chat:write,identify&state=signup">
                         <img

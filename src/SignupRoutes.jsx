@@ -12,6 +12,8 @@ import Welcome from './auth/welcome'
 const SignupRoutes = () => {
   const [verifiedSignup, setVerifiedSignup] = useState(false)
   const [checkingSignupStatus, setCheckingSignupStatus] = useState(true)
+  console.log('checkingSignupStatus: ', checkingSignupStatus)
+  console.log('verifiedSignup: ', verifiedSignup)
 
   useEffect(() => {
     checkSignupStatus()
@@ -21,6 +23,7 @@ const SignupRoutes = () => {
 
   const checkSignupStatus = async () => {
     const signupCookie = Cookies.get('signup-process')
+    console.log('signupCookie: ', signupCookie)
     if (!signupCookie) {
       setVerifiedSignup(false)
       return setCheckingSignupStatus(false)
@@ -38,17 +41,17 @@ const SignupRoutes = () => {
         <>
           <Route
             exact
-            path={`${process.env.PUBLIC_URL}/is-admin`}
+            path={`${process.env.PUBLIC_URL}/signup/is-admin`}
             component={UserIsAdmin}
           />
           <Route
             exact
-            path={`${process.env.PUBLIC_URL}/welcome`}
+            path={`${process.env.PUBLIC_URL}/signup/welcome`}
             component={Welcome}
           />
         </>
       ) : (
-        <Redirect to={`${process.env.PUBLIC_URL}/signup`} />
+        <Redirect to={`${process.env.PUBLIC_URL}/new/signup`} />
       )}
     </>
   )

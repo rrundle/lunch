@@ -12,17 +12,22 @@ import store from './store/index'
 
 import Router from './Router'
 
-const Root = () => (
-  <div className="App">
-    <Provider store={store}>
-      <BrowserRouter basename={`/`}>
-        <ScrollContext>
-          <Router />
-        </ScrollContext>
-      </BrowserRouter>
-    </Provider>
-  </div>
-)
+require('dotenv').config()
+
+const Root = () => {
+  console.log('hello from root!')
+  return (
+    <div className="App">
+      <Provider store={store}>
+        <BrowserRouter basename={`/`}>
+          <ScrollContext>
+            <Router />
+          </ScrollContext>
+        </BrowserRouter>
+      </Provider>
+    </div>
+  )
+}
 
 ReactDOM.render(<Root />, document.getElementById('root'))
 

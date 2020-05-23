@@ -4,7 +4,7 @@ import qs from 'qs'
 import { Redirect } from 'react-router-dom'
 import Cookies from 'js-cookie'
 
-import { baseUri } from '../config'
+import { baseUri, cookieExpiration } from '../config'
 import SvgSpinner from '../components/svg-spinner'
 import { ADD_USER, COMPANY_SIGNUP_INFO } from '../constants/actionTypes'
 
@@ -44,7 +44,9 @@ const SlackAuth = ({ addCompanyInfo, addUser }) => {
         console.log('body: ', body)
         if (state === 'login.signup') {
           console.log('should have jwt now, set cookie and redirect')
-          Cookies.set('lunch-session', body.token)
+          Cookies.set('lunch-session', body.token, {
+            expires: cookieExpiration,
+          })
           await addUser(body)
           setRedirect({
             status: true,
@@ -82,7 +84,7 @@ const SlackAuth = ({ addCompanyInfo, addUser }) => {
         to: '/signup',
       })
     }
-  }, [addUser])
+  }, [addCompanyInfo, addUser])
 
   return (
     <>

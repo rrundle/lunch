@@ -6,10 +6,11 @@ import Cookies from 'js-cookie'
 import './index.scss'
 import App from './components/app'
 import initializeAuth from './actions/initializeAuth'
+import { cookieExpiration } from './config'
 
 // Import custom Components
 import Default from './components/dashboard/defaultCompo/default'
-import ResetPwd from './pages/resetPwd'
+import Signin from './auth/signin'
 import Payment from './components/payment'
 import Pricing from './components/price/pricing'
 import SvgSpinner from './components/svg-spinner'
@@ -17,12 +18,12 @@ import DataTableComponent from './components/tables/dataTableComponent'
 import UserEdit from './components/userEdit'
 
 const AccountRoutes = ({ auth, authData, initializeAuth }) => {
+  console.log('HELLO????')
   const [loggedIn, setLoggedInState] = useState(false)
   const [checkingAuth, setCheckingAuth] = useState(true)
   const [redirectNoAuth, setRedirectNoAuth] = useState(false)
 
   console.log('auth: ', auth)
-  console.log('initializeAuth: ', initializeAuth)
 
   useEffect(() => {
     checkAuth()
@@ -46,7 +47,9 @@ const AccountRoutes = ({ auth, authData, initializeAuth }) => {
       setLoggedInState(false)
       return setCheckingAuth(false)
     }
-    Cookies.set('lunch-session', authStatus.token)
+    Cookies.set('lunch-session', authStatus.token, {
+      expires: cookieExpiration,
+    })
     setLoggedInState(true)
     return setCheckingAuth(false)
   }
@@ -59,45 +62,40 @@ const AccountRoutes = ({ auth, authData, initializeAuth }) => {
         </>
       ) : (
         <>
-          {redirectNoAuth ? (
-            <Route
-              path={`${process.env.PUBLIC_URL}/login`}
-              component={ResetPwd}
-            />
-          ) : loggedIn ? (
+          {loggedIn ? (
             <>
               <App>
                 {/* dashboard menu */}
                 <Route
                   exact
-                  path={`${process.env.PUBLIC_URL}/`}
+                  path={`${process.env.PUBLIC_URL}/app`}
                   render={() => (
                     <Redirect
-                      to={`${process.env.PUBLIC_URL}/dashboard/default`}
+                      to={`${process.env.PUBLIC_URL}/app/dashboard/default`}
                     />
                   )}
                 />
                 {/* <Route exact path={`${process.env.PUBLIC_URL}/`} component={Default} /> */}
                 <Route
-                  path={`${process.env.PUBLIC_URL}/dashboard/default`}
+                  path={`${process.env.PUBLIC_URL}/app/dashboard/default`}
                   component={Default}
                 />
                 <Route
-                  path={`${process.env.PUBLIC_URL}/table/datatable`}
+                  path={`${process.env.PUBLIC_URL}/app/table/datatable`}
                   component={DataTableComponent}
                 />
                 <Route
-                  path={`${process.env.PUBLIC_URL}/users/userEdit`}
+                  path={`${process.env.PUBLIC_URL}/app/users/userEdit`}
                   component={UserEdit}
                 />
                 <Route
-                  path={`${process.env.PUBLIC_URL}/ecommerce/payment`}
+                  path={`${process.env.PUBLIC_URL}/app/ecommerce/payment`}
                   component={Payment}
                 />
 
                 {/* Pricing */}
                 <Route
-                  path={`${process.env.PUBLIC_URL}/price/pricing`}
+                  path={`${process.env.PUBLIC_URL}/app/price/pricing`}
                   component={Pricing}
                 />
               </App>

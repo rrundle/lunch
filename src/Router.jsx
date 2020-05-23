@@ -8,35 +8,48 @@ import SignupRoutes from './SignupRoutes'
 // Import custom Components
 import ForgetPwd from './pages/forgetPwd'
 import ResetPwd from './pages/resetPwd'
-import Signin from './auth/signin'
-import Signup from './auth/signup'
 
 // Auth
 import SlackAuth from './auth/slackAuth'
+import Signin from './auth/signin'
+import Signup from './auth/signup'
 
-const Router = () => (
-  <Switch>
-    <Route
-      exact
-      path={`${process.env.PUBLIC_URL}/slack-auth`}
-      component={SlackAuth}
-    />
+//Home Page
+import HomePage from './homepage/HomePage'
 
-    <SignupRoutes />
+const Router = () => {
+  console.log('hello from Router!')
+  return (
+    <Switch>
+      <Route exact path={`${process.env.PUBLIC_URL}/`} component={HomePage} />
 
-    <AccountRoutes />
+      <Route path={`${process.env.PUBLIC_URL}/app`} component={AccountRoutes} />
 
-    <Route path={`${process.env.PUBLIC_URL}/login`} component={Signin} />
-    <Route path={`${process.env.PUBLIC_URL}/signup`} component={Signup} />
-    <Route
-      path={`${process.env.PUBLIC_URL}/pages/forgetPwd`}
-      component={ForgetPwd}
-    />
-    <Route
-      path={`${process.env.PUBLIC_URL}/pages/resetPwd`}
-      component={ResetPwd}
-    />
-  </Switch>
-)
+      <Route
+        exact
+        path={`${process.env.PUBLIC_URL}/slack-auth`}
+        component={SlackAuth}
+      />
+
+      <Route
+        path={`${process.env.PUBLIC_URL}/signup`}
+        component={SignupRoutes}
+      />
+
+      <Route path={`${process.env.PUBLIC_URL}/new/signup`} component={Signup} />
+
+      <Route path={`${process.env.PUBLIC_URL}/login`} component={Signin} />
+
+      <Route
+        path={`${process.env.PUBLIC_URL}/pages/forgetPwd`}
+        component={ForgetPwd}
+      />
+      <Route
+        path={`${process.env.PUBLIC_URL}/pages/resetPwd`}
+        component={ResetPwd}
+      />
+    </Switch>
+  )
+}
 
 export default Router

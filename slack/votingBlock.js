@@ -1,8 +1,8 @@
 const { v4: uuidv4 } = require('uuid')
-const qs = require('qs')
-const rp = require('request-promise')
+// const qs = require('qs')
+// const rp = require('request-promise')
 
-const { mongoClient, triggerSlackPoll } = require('./helpers')
+const { /* mongoClient, */ triggerSlackPoll } = require('./helpers')
 require('dotenv').config()
 
 const votingBlock = async ({ lunchData, vote: voteValue }) => {
@@ -119,7 +119,7 @@ const votingBlock = async ({ lunchData, vote: voteValue }) => {
       type: 'section',
       text: {
         type: 'plain_text',
-        text: 'What should we do for lunch today?',
+        text: 'What should we get for lunch today?',
       },
     },
     {
