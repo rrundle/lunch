@@ -12,13 +12,11 @@ import ResetPwd from './pages/resetPwd'
 // Auth
 import SlackAuth from './auth/slackAuth'
 import Signin from './auth/signin'
-import Signup from './auth/signup'
 
 //Home Page
 import HomePage from './homepage/HomePage'
 
 const Router = () => {
-  console.log('hello from Router!')
   return (
     <Switch>
       <Route exact path={`${process.env.PUBLIC_URL}/`} component={HomePage} />
@@ -35,8 +33,6 @@ const Router = () => {
         path={`${process.env.PUBLIC_URL}/signup`}
         component={SignupRoutes}
       />
-
-      <Route path={`${process.env.PUBLIC_URL}/new/signup`} component={Signup} />
 
       <Route path={`${process.env.PUBLIC_URL}/login`} component={Signin} />
 

@@ -7,6 +7,7 @@ const generateJWT = (userData) => {
   expirationDate.setDate(today.getDate() + 60)
 
   const {
+    access_token: accessToken,
     user: {
       email,
       id: uid,
@@ -14,16 +15,23 @@ const generateJWT = (userData) => {
       image_72: avatarSmall,
       image_512: avatarLarge,
     } = {},
+    stripeId,
     team: { id: teamId } = {},
+    trial,
+    trialPeriodStart,
   } = userData
 
   let payload = {
+    accessToken,
     avatarLarge,
     avatarSmall,
     email,
     isAdmin: true,
     name,
+    stripeId,
     teamId,
+    trial,
+    trialPeriodStart,
     uid,
   }
 
@@ -34,6 +42,8 @@ const generateJWT = (userData) => {
 
 const refreshJwt = (jwtStatus) => {
   console.log('jwtSTatus: ', jwtStatus)
+  // TODO we should be getting updated data from the database
+  // instead of just refreshing the data from the cookie
   const today = new Date()
   const expirationDate = new Date(today)
   expirationDate.setDate(today.getDate() + 60)

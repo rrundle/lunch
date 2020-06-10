@@ -10,7 +10,6 @@ import { cookieExpiration } from './config'
 
 // Import custom Components
 import Default from './components/dashboard/defaultCompo/default'
-import Signin from './auth/signin'
 import Payment from './components/payment'
 import Pricing from './components/price/pricing'
 import SvgSpinner from './components/svg-spinner'
@@ -19,14 +18,13 @@ import UserEdit from './components/userEdit'
 
 const AccountRoutes = ({ auth, authData, initializeAuth }) => {
   console.log('HELLO????')
-  const [loggedIn, setLoggedInState] = useState(false)
-  const [checkingAuth, setCheckingAuth] = useState(true)
-  const [redirectNoAuth, setRedirectNoAuth] = useState(false)
+  const [loggedIn, setLoggedInState] = useState(true) // TODO CHANGE!!
+  const [checkingAuth, setCheckingAuth] = useState(false) // TODO CHANGE!!
 
   console.log('auth: ', auth)
 
   useEffect(() => {
-    checkAuth()
+    // checkAuth()
     // only want to run this on mount
     //eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -43,7 +41,6 @@ const AccountRoutes = ({ auth, authData, initializeAuth }) => {
     console.log('authStatus: ', authStatus)
     if (!authStatus.authed) {
       console.log('no auth')
-      setRedirectNoAuth(true)
       setLoggedInState(false)
       return setCheckingAuth(false)
     }
@@ -89,7 +86,7 @@ const AccountRoutes = ({ auth, authData, initializeAuth }) => {
                   component={UserEdit}
                 />
                 <Route
-                  path={`${process.env.PUBLIC_URL}/app/ecommerce/payment`}
+                  path={`${process.env.PUBLIC_URL}/app/account/payment`}
                   component={Payment}
                 />
 

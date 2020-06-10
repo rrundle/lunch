@@ -1,8 +1,8 @@
 import { combineReducers } from 'redux'
-import LunchPollAdmin from './lunchPoll.reducer'
+import lunchPollAdmin from './lunchPoll.reducer'
 
 const reducers = combineReducers({
-  LunchPollAdmin,
+  lunchPollAdmin,
 })
 
 export default reducers

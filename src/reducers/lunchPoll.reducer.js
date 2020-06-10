@@ -1,4 +1,8 @@
-import { ADD_USER, COMPANY_SIGNUP_INFO } from '../constants/actionTypes'
+import {
+  ADD_USER,
+  COMPANY_SIGNUP_INFO,
+  SET_AUTH,
+} from '../constants/actionTypes'
 
 const INITIAL_STATE = {
   auth: false,
@@ -15,6 +19,10 @@ export default (state = INITIAL_STATE, action) => {
     case COMPANY_SIGNUP_INFO:
       return Object.assign({}, state, {
         signup: action.value,
+      })
+    case SET_AUTH:
+      return Object.assign({}, state, {
+        auth: action.value,
       })
 
     default:

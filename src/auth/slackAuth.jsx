@@ -3,12 +3,13 @@ import { connect } from 'react-redux'
 import qs from 'qs'
 import { Redirect } from 'react-router-dom'
 import Cookies from 'js-cookie'
+import jwtDecode from 'jwt-decode'
 
 import { baseUri, cookieExpiration } from '../config'
 import SvgSpinner from '../components/svg-spinner'
-import { ADD_USER, COMPANY_SIGNUP_INFO } from '../constants/actionTypes'
+import { ADD_USER, SET_AUTH } from '../constants/actionTypes'
 
-const SlackAuth = ({ addCompanyInfo, addUser }) => {
+const SlackAuth = ({ addUser, setAuth }) => {
   console.log('baseUri: ', baseUri)
   const [working, setWorking] = useState(true)
   const [redirect, setRedirect] = useState({ status: false, to: '' })
@@ -21,7 +22,7 @@ const SlackAuth = ({ addCompanyInfo, addUser }) => {
       if (!code && !state) {
         setRedirect({
           status: true,
-          to: '/signup',
+          to: '/signup/new',
         })
       }
 
@@ -42,31 +43,34 @@ const SlackAuth = ({ addCompanyInfo, addUser }) => {
         if (!response.ok) throw new Error('No slack Auth')
         const body = await response.json()
         console.log('body: ', body)
+        if (body.status === 403) throw new Error('Stripe Error')
         if (state === 'login.signup') {
           console.log('should have jwt now, set cookie and redirect')
           Cookies.set('lunch-session', body.token, {
             expires: cookieExpiration,
           })
-          await addUser(body)
+          console.log('first parse the jwt')
+          const decodedJwt = jwtDecode(body.token)
+          console.log('decodedJwt: ', decodedJwt)
+          addUser({ token: body.token, ...decodedJwt })
+          setAuth(true)
+          setWorking(false)
           setRedirect({
             status: true,
-            to: '/welcome',
+            to: '/signup/welcome',
           })
         } else {
-          await addCompanyInfo(body)
-          setRedirect({
-            status: true,
-            to: '/is-admin',
-          })
+          // initial signup, get user permissions
+          window.location =
+            'https://slack.com/oauth/authorize?scope=identity.basic,identity.avatar,identity.email,&client_id=224182028598.1018140415783&state=login.signup'
         }
-        setWorking(false)
       } catch (err) {
         // TODO show error toast
+        setWorking(false)
         setRedirect({
           status: true,
-          to: '/signup',
+          to: '/signup/new',
         })
-        setWorking(false)
         console.error(err)
       }
     }
@@ -81,27 +85,25 @@ const SlackAuth = ({ addCompanyInfo, addUser }) => {
       console.log('no query')
       setRedirect({
         status: true,
-        to: '/signup',
+        to: '/signup/new',
       })
     }
-  }, [addCompanyInfo, addUser])
+  }, [addUser, setAuth])
 
   return (
     <>
       {working ? (
         <SvgSpinner show />
-      ) : redirect.status ? (
-        <Redirect to={redirect.to} />
       ) : (
-        <div>UH OH PROBLEMO!</div>
+        redirect.status && <Redirect to={redirect.to} />
       )}
     </>
   )
 }
 
 const mapDispatchToProps = (dispatch) => ({
-  addCompanyInfo: (value) => dispatch({ type: COMPANY_SIGNUP_INFO, value }),
   addUser: (value) => dispatch({ type: ADD_USER, value }),
+  setAuth: (value) => dispatch({ type: SET_AUTH, value }),
 })
 
 export default connect(null, mapDispatchToProps)(SlackAuth)

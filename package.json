@@ -20,6 +20,8 @@
     "eject:browser": "react-scripts eject"
   },
   "dependencies": {
+    "@stripe/react-stripe-js": "^1.1.2",
+    "@stripe/stripe-js": "^1.5.0",
     "body-parser": "^1.18.3",
     "chartist": "^0.11.4",
     "cors": "^2.8.5",
@@ -28,6 +30,7 @@
     "express-favicon": "^2.0.1",
     "js-cookie": "^2.2.1",
     "jsonwebtoken": "^8.5.1",
+    "jwt-decode": "^2.2.0",
     "mongodb": "^3.2.3",
     "node-sass": "^4.14.0",
     "passport": "^0.4.1",
@@ -45,6 +48,7 @@
     "redux-thunk": "^2.3.0",
     "request": "^2.88.0",
     "request-promise": "^4.2.5",
+    "stripe": "^8.56.0",
     "tiny-shortener": "^2.2.3",
     "uuid": "^7.0.2"
   },

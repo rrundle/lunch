@@ -1,4 +1,5 @@
 import { createStore, applyMiddleware, compose } from 'redux'
+import { config } from '../config'
 
 // middlewares
 import thunkMiddleware from 'redux-thunk'
@@ -23,7 +24,7 @@ const store = createStore(
   compose(
     applyMiddleware(thunkMiddleware),
 
-    //For working redux dev tools in chrome (https://github.com/zalmoxisus/redux-devtools-extension)
+    // For working redux dev tools in chrome (https://github.com/zalmoxisus/redux-devtools-extension)
     window.devToolsExtension
       ? window.devToolsExtension()
       : function (f) {
@@ -33,11 +34,12 @@ const store = createStore(
 )
 
 // Only log to the console in dev mode
-const draw = () =>
-  process.env.ENV === 'dev' ? console.log(store.getState()) : store.getState()
+// const environment = config.get('environment') // TODO FIX THIS
+// console.log('environment: ', environment);
+// const draw = () => environment === 'dev' ? console.log(store.getState()) : store.getState()
+const draw = () => console.log(store.getState())
 store.subscribe(draw)
 
-// eslint-disable-next-line
 const unsubscribe = store.subscribe(() => {
   const state = store.getState()
   saveToLocalStorage(state)
